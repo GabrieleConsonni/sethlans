@@ -1,7 +1,8 @@
 # Sethlans toolkit — orchestrazione di subagent su Tabula
 
-Questa cartella contiene la configurazione **globale** di Claude Code che fa girare
-il flusso PO→UX→architect→dev visualizzato sulla board [Tabula](../README.md):
+Questa cartella è il cuore di [Sethlans](../README.md): la configurazione **globale** di
+Claude Code che fa girare il flusso PO→UX→architect→dev, visualizzato sulla board
+[Tabula](../docs/tabula.md):
 
 ```
 claude-config/
@@ -56,7 +57,7 @@ Dopo l'installazione, **riavvia Claude Code** e digita `/sethlans <richiesta>`.
 
 ## Prerequisiti per il flusso completo
 
-- La board **Tabula** in esecuzione (vedi il [README principale](../README.md)).
+- La board **Tabula** in esecuzione (vedi [docs/tabula.md](../docs/tabula.md)).
   Default `http://localhost:9955`, override con la variabile d'ambiente `TABULA_API_URL`.
 - Il progetto su cui lavori dovrebbe avere un **`CLAUDE.md`** che descrive stack, repo,
   comandi e ambienti: è da lì che i subagent generici si orientano.

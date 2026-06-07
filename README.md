@@ -1,152 +1,101 @@
-# Tabula
+# Sethlans
 
-Cruscotto per coordinare i subagenti di Claude: organizza il lavoro per **progetti** (un progetto Jira oppure uno interno) e, dentro ciascun progetto, visualizza **epiche**, **storie**, **task** e lo stato/consumo degli **agenti** (pool condiviso tra i progetti). Backend con API REST (FastAPI + Postgres, schema `tabula`, migrazioni Alembic) e frontend React (Vite). Ogni epica/storia/task ha un documento **Markdown** (`md`) associato; le storie hanno una **fase** (`phase`). Il progetto attivo si seleziona dalla combo nell'header (con il `+` per crearne uno nuovo).
+**Sethlans** (il dio etrusco del fuoco e della forgia) è un sistema di **orchestrazione di
+subagent** per Claude Code: a partire da una richiesta (chiave Jira, link Confluence o
+descrizione libera) coordina il flusso **PO → UX → architect → dev → review/test**,
+delegando ogni fase a un subagent specializzato. L'avanzamento è reso visibile in tempo
+reale su **Tabula**, la board che fa da componente visivo del sistema.
 
-I subagenti scrivono sul backend via API; il frontend mostra lo stato e si aggiorna in automatico (polling).
+```
+                          /sethlans  (orchestratore)
+                               │
+   product-owner → ux-designer → architect → dev (fe / be / fullstack) → reviewer / tester
+                               │
+                               ▼
+                      Tabula  (board: epiche · storie · task · agenti)
+```
 
-> **Orchestrazione** — il command `/sethlans` e i subagent che pilotano questo flusso
-> stanno in [`claude-config/`](claude-config/README.md), con gli script per installarli
-> nella home globale di Claude Code (`~/.claude/`).
+## I componenti
+
+| Componente | Cos'è | Dove |
+|------------|-------|------|
+| **`/sethlans`** | Il command orchestratore: ingest della richiesta e coordinamento delle fasi. | [`claude-config/commands/sethlans.md`](claude-config/commands/sethlans.md) |
+| **Subagent** | 10 agent generici e riusabili (PO, UX, architect, frontend, be-python, be-java, fullstack, devops, reviewer, tester). Non assumono un progetto: leggono il `CLAUDE.md` del repo su cui lavorano. | [`claude-config/agents/`](claude-config/agents) |
+| **Protocollo** | Il contratto d'integrazione con la board (base URL, modello dati, enum, ricette): single source of truth citata da command e agent. | [`claude-config/tabula-protocol.md`](claude-config/tabula-protocol.md) |
+| **Tabula** | Il **componente visivo**: board (FastAPI + Postgres + React) che renderizza cosa fanno gli agent. | [`docs/tabula.md`](docs/tabula.md) · `backend/` · `frontend/` |
+
+Command, subagent e protocollo sono configurazione **globale** di Claude Code (vivono in
+`~/.claude/`); Tabula è un'**app** a sé che gli agent aggiornano via HTTP. Riflettere lo
+stato sulla board è **best-effort e mai bloccante**: se Tabula non risponde, il lavoro
+di sviluppo prosegue lo stesso.
+
+## Il flusso in breve
+
+1. **Healthcheck** della board Tabula (best-effort).
+2. **Product Owner** — ingest & analisi: trova/crea epica + storia, imposta la `phase`.
+3. **UX Designer** — mockup HTML/CSS, se la storia richiede flussi UX da validare.
+4. **Architect** — scelte architetturali + scomposizione in task (con `agent_id` per tipo).
+5. **DevOps** (on-demand) — prepara l'ecosistema (repo aggiornati, infra/servizi su Docker).
+6. **Dev** — i subagent target implementano i task (parallelizzando gli indipendenti).
+7. **Reviewer / Tester** — review del diff e test E2E/UI sui criteri di accettazione.
+8. **Cascata di stato** e riepilogo finale.
+
+Il dettaglio di ogni passo è in [`claude-config/commands/sethlans.md`](claude-config/commands/sethlans.md).
+
+## Come iniziare
+
+### 1. Installa il toolkit (command + subagent + protocollo)
+
+Questi file vanno nella home globale di Claude Code (`~/.claude/`). Gli script li copiano:
+
+```powershell
+# Windows / PowerShell
+cd claude-config; pwsh ./install.ps1          # -Force per sovrascrivere
+```
+```bash
+# macOS / Linux
+cd claude-config && chmod +x install.sh && ./install.sh   # --force per sovrascrivere
+```
+
+Riavvia Claude Code e usa `/sethlans <chiave Jira | link Confluence | descrizione>`.
+Dettagli: [`claude-config/README.md`](claude-config/README.md).
+
+### 2. Avvia Tabula (la board)
+
+```bash
+docker compose up --build -d        # oppure: tabula.bat (Windows)
+```
+Interfaccia → <http://localhost:5173> · API/docs → <http://localhost:9955/docs>.
+Guida completa (Docker, avvio senza Docker, API, schema dati): [`docs/tabula.md`](docs/tabula.md).
+
+### Prerequisiti
+
+- **Claude Code** con il toolkit installato.
+- **Docker Desktop** + un **Postgres** raggiungibile (per la board). Valori locali in `.env`
+  (copia da `.env.example`); registry npm privato opzionale via `docker-compose.override.yml`.
+- Per l'ingest da Jira/Confluence: l'**MCP Atlassian** configurato in Claude Code.
+- Sul progetto su cui lavori, un **`CLAUDE.md`** che descriva stack/comandi/ambienti (vedi
+  [`CLAUDE.md`](CLAUDE.md) di questo repo come esempio).
 
 ## Struttura del repository
 
 ```
-tabula/
-├── README.md
-├── backend/
-│   ├── tabula_server.py        # API FastAPI (endpoint CRUD + /state)
-│   ├── models.py               # modelli ORM SQLAlchemy (epics/stories/tasks/agents)
-│   ├── db.py                   # engine Postgres + schema `tabula`
-│   ├── alembic/                # migrazioni (env.py + versions/)
-│   ├── alembic.ini
-│   ├── seed.py                 # seed opzionale (agent canonici + demo)
-│   ├── requirements.txt
-│   └── .gitignore
-└── frontend/
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js
-    ├── .env.example
-    ├── .gitignore
-    └── src/
-        ├── main.jsx
-        ├── api.js              # client delle API
-        ├── App.jsx             # stato + routing tra le viste
-        ├── styles.css
-        └── components/
-            ├── ProjectSwitcher.jsx # combo progetto + crea progetto (header)
-            ├── Agenda.jsx      # home: epiche (sx) + storie (dx)
-            ├── StoryPage.jsx   # dettaglio storia: tab Munera + Periti
-            ├── Munera.jsx      # board dei task
-            ├── Periti.jsx      # griglia agenti
-            └── shared.jsx      # pezzi riusati (ColHeader, EditBox, ecc.)
+sethlans/
+├── README.md                     # questo file (Sethlans)
+├── CLAUDE.md                     # guida progetto per i subagent
+├── LICENSE · NOTICE              # Apache 2.0
+├── claude-config/                # il toolkit Sethlans (config globale di Claude Code)
+│   ├── commands/sethlans.md      #   il command /sethlans
+│   ├── agents/                   #   i 10 subagent generici
+│   ├── tabula-protocol.md        #   contratto API della board
+│   └── install.ps1 / install.sh  #   installer → ~/.claude/
+├── docs/
+│   └── tabula.md                 # guida completa della board Tabula
+├── backend/                      # Tabula — API FastAPI + Postgres/Alembic
+├── frontend/                     # Tabula — SPA React/Vite
+└── docker-compose*.yml · *.bat   # avvio della board
 ```
 
-## Avvio con Docker (consigliato)
+## Licenza
 
-Serve [Docker Desktop](https://www.docker.com/products/docker-desktop/) in esecuzione.
-
-Doppio clic su **`tabula.bat`** (oppure da terminale `docker compose up --build -d`).
-Lo script costruisce le immagini, avvia i container e apre il browser.
-
-- Interfaccia: <http://localhost:5173>
-- API / docs: <http://localhost:9955/docs>
-
-Per fermare tutto: doppio clic su **`stop-tabula.bat`** (oppure `docker compose down`).
-
-Il backend si appoggia a un **Postgres esterno** (default: `tabula` sull'host,
-schema `tabula`) configurato via `TABULA_DB_URL`. All'avvio del container vengono
-applicate le migrazioni (`alembic upgrade head`).
-
-### Modalità sviluppo (hot-reload)
-
-Doppio clic su **`dev-tabula.bat`** (oppure `docker compose -f docker-compose.dev.yml up --build`).
-
-I sorgenti di `backend/` e `frontend/` sono montati nei container: ogni modifica
-viene applicata automaticamente, senza ricostruire le immagini.
-
-- Backend: `uvicorn --reload` ricarica al salvataggio dei file Python.
-- Frontend: dev server di Vite con hot module replacement.
-
-Stesse porte e stesso volume DB della modalità normale. Per fermare: `stop-tabula.bat`.
-
-## Avvio rapido (senza Docker)
-
-### 1. Backend
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-# Postgres: default postgresql+psycopg2://postgres:password@localhost:5432/tabula
-# (override con la variabile d'ambiente TABULA_DB_URL)
-alembic upgrade head               # crea lo schema `tabula` e le tabelle
-python tabula_server.py            # http://localhost:9955  (docs: /docs)
-```
-
-La board parte **vuota**. Per popolare agent canonici + dati demo: `python seed.py`.
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-cp .env.example .env               # opzionale: cambia l'URL del backend
-npm run dev                        # http://localhost:5173
-```
-
-Il frontend legge `VITE_API_URL` (default `http://localhost:9955`). Puoi anche cambiarlo a runtime dal campo in alto nell'interfaccia.
-
-## API in breve
-
-Risorse: `projects`, `epics`, `stories`, `tasks`, `agents`. Ognuna con:
-
-| Metodo | Path              | Azione                    |
-|--------|-------------------|---------------------------|
-| GET    | `/{risorsa}`      | lista (con filtri)        |
-| POST   | `/{risorsa}`      | crea                      |
-| GET    | `/{risorsa}/{id}` | leggi                     |
-| PATCH  | `/{risorsa}/{id}` | modifica parziale         |
-| DELETE | `/{risorsa}/{id}` | cancella                  |
-
-Filtri: `/epics?project_id=`, `/stories?epic_id=`, `/tasks?story_id=`, `/tasks?agent_id=`, `?status=`, `/projects?type=`.
-Snapshot completo: `GET /state`.
-
-### Esempio: un subagente aggiorna il proprio lavoro
-
-```bash
-# prende in carico un task
-curl -X PATCH localhost:9955/tasks/t3 \
-  -H "Content-Type: application/json" \
-  -d '{"status":"progress","agent_id":"a2"}'
-
-# aggiorna stato e consumo dell'agente
-curl -X PATCH localhost:9955/agents/a2 \
-  -H "Content-Type: application/json" \
-  -d '{"current_task":"Test end-to-end","status":"active","tokens":92000}'
-
-# completa il task
-curl -X PATCH localhost:9955/tasks/t3 -H "Content-Type: application/json" -d '{"status":"done"}'
-```
-
-## Schema dati
-
-```
-Project { id, name, type, jira_key }                                   type: jira|internal ; jira_key: chiave Jira (vuota se interno)
-Epic   { id, title, desc, status, project_id, md, md_updated_at }       status: todo|progress|done
-Story  { id, title, desc, status, phase, epic_id, md, md_updated_at }  status: todo|progress|done ; phase: analysis|ux|design|dev|done
-Task   { id, title, status, story_id, agent_id, md, md_updated_at }    status: todo|progress|done
-Agent  { id, name, current_task, status, tokens }                      status: active|idle (pool condiviso, non legato a un progetto)
-```
-
-Gerarchia: **Project → Epic → Story → Task**. Cancellando un progetto vengono rimosse a cascata epiche/storie/task collegati.
-
-`md` = documento Markdown associato (per le storie può contenere mockup HTML in
-blocchi ```mockup```, renderizzati nella UI in un iframe sandbox).
-
-## Note
-
-- CORS è aperto a tutte le origini per comodità di sviluppo: in produzione restringere `allow_origins`.
-- Persistenza su Postgres (schema `tabula`), migrazioni con Alembic: `alembic upgrade head` / `alembic revision -m "..."`. Connessione via `TABULA_DB_URL`.
-- Nessuna autenticazione: aggiungere un token se esposto in rete.
+Distribuito con licenza **Apache 2.0** — vedi [`LICENSE`](LICENSE) e [`NOTICE`](NOTICE).
