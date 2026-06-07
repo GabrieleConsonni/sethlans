@@ -21,7 +21,7 @@ che modella il flusso PO→UX→architect→dev. È composta da:
 | Area      | Tecnologie |
 |-----------|-----------|
 | Backend   | Python 3.11+, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, Uvicorn |
-| Database  | PostgreSQL (schema `tabula` nel db `akn-dev-local`), psycopg2 |
+| Database  | PostgreSQL (schema dedicato `tabula`), psycopg2 |
 | Frontend  | React 18, Vite 5, lucide-react (no framework UI aggiuntivi) |
 | Runtime   | Docker / docker-compose (backend :9955, frontend :5173) |
 
@@ -54,8 +54,9 @@ docker compose down                     # stop  (oppure: stop-tabula.bat)
 ```
 Interfaccia → http://localhost:5173 · API/docs → http://localhost:9955/docs
 
-> Il build del frontend usa un secret `~/.npmrc` (registry/token Nexus) montato dal compose:
-> serve un `.npmrc` valido nella home per `npm install` dietro il proxy aziendale.
+> Il build del frontend usa il registry npm pubblico. Dietro un registry privato/proxy,
+> fornisci un `~/.npmrc` come secret tramite `docker-compose.override.yml` (vedi
+> `docker-compose.override.yml.example`); il secret è opzionale e non finisce nell'immagine.
 
 ### Senza Docker
 ```bash
@@ -78,7 +79,7 @@ npm run dev                                          # :5173
 
 | Variabile        | Dove        | Default | Note |
 |------------------|-------------|---------|------|
-| `TABULA_DB_URL`  | backend     | `postgresql+psycopg2://postgres:password@localhost:5432/akn-dev-local` | connessione Postgres |
+| `TABULA_DB_URL`  | backend     | `postgresql+psycopg2://postgres:password@localhost:5432/tabula` | connessione Postgres |
 | `TABULA_PORT`    | backend     | `9955`  | porta API |
 | `VITE_API_URL`   | frontend    | `http://localhost:9955` | base URL del backend (anche runtime, dal campo in header) |
 

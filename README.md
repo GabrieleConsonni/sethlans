@@ -54,7 +54,7 @@ Lo script costruisce le immagini, avvia i container e apre il browser.
 
 Per fermare tutto: doppio clic su **`stop-tabula.bat`** (oppure `docker compose down`).
 
-Il backend si appoggia a un **Postgres esterno** (default: `akn-dev-local` sull'host,
+Il backend si appoggia a un **Postgres esterno** (default: `tabula` sull'host,
 schema `tabula`) configurato via `TABULA_DB_URL`. All'avvio del container vengono
 applicate le migrazioni (`alembic upgrade head`).
 
@@ -79,7 +79,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-# Postgres: default postgresql+psycopg2://postgres:password@localhost:5432/akn-dev-local
+# Postgres: default postgresql+psycopg2://postgres:password@localhost:5432/tabula
 # (override con la variabile d'ambiente TABULA_DB_URL)
 alembic upgrade head               # crea lo schema `tabula` e le tabelle
 python tabula_server.py            # http://localhost:9955  (docs: /docs)

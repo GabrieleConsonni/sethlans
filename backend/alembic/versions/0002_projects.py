@@ -1,7 +1,7 @@
 """progetti: tabella projects + epics.project_id
 
 Introduce il contenitore di primo livello "progetto" (Jira o interno).
-Le epiche esistenti vengono assegnate a un progetto Jira "Quality flow" (QFW).
+Le epiche esistenti vengono assegnate a un progetto interno di default.
 
 Revision ID: 0002_projects
 Revises: 0001_init
@@ -21,7 +21,7 @@ depends_on = None
 # applicano lo schema_translate_map (None -> "tabula") impostato in env.py, quindi
 # qui lo schema `tabula` va indicato esplicitamente con schema=SCHEMA.
 
-_QFW_ID = "pqualityflow"  # id stabile del progetto di default
+_DEFAULT_ID = "pdefault0"  # id stabile del progetto di default
 
 
 def upgrade() -> None:
@@ -37,7 +37,7 @@ def upgrade() -> None:
     # 1) colonna inizialmente nullable per poter fare il backfill
     op.add_column("epics", sa.Column("project_id", sa.String(), nullable=True), schema=SCHEMA)
 
-    # 2) progetto di default "Quality flow" (QFW) per le epiche preesistenti
+    # 2) progetto interno di default per le epiche preesistenti
     projects = sa.table(
         "projects",
         sa.column("id", sa.String),
@@ -48,12 +48,12 @@ def upgrade() -> None:
     )
     op.bulk_insert(
         projects,
-        [{"id": _QFW_ID, "name": "Quality flow", "type": "jira", "jira_key": "QFW"}],
+        [{"id": _DEFAULT_ID, "name": "Default", "type": "internal", "jira_key": ""}],
     )
 
-    # 3) backfill: tutte le epiche esistenti al progetto QFW
+    # 3) backfill: tutte le epiche esistenti al progetto di default
     epics = sa.table("epics", sa.column("project_id", sa.String), schema=SCHEMA)
-    op.execute(epics.update().values(project_id=_QFW_ID))
+    op.execute(epics.update().values(project_id=_DEFAULT_ID))
 
     # 4) ora la colonna può diventare NOT NULL + vincolo FK
     op.alter_column("epics", "project_id", nullable=False, schema=SCHEMA)

@@ -95,7 +95,7 @@ export default function ProjectSwitcher({ projects, selectedProject, onSelect, r
               {form.type === "jira" && (
                 <input
                   className="input"
-                  placeholder="Chiave Jira (es. QFW)"
+                  placeholder="Chiave Jira (es. ABC)"
                   value={form.jira_key}
                   onChange={(e) => setForm((f) => ({ ...f, jira_key: e.target.value }))}
                   onKeyDown={(e) => e.key === "Enter" && create()}

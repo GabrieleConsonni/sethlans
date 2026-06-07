@@ -19,7 +19,7 @@ Esegui in ordine, fermandoti solo se un passaggio è davvero bloccante:
 
 ## 1. Healthcheck Tabula
 - `GET $base/state` (default `http://localhost:9955`, override `TABULA_API_URL`).
-- Se NON risponde: avvisa che la board non è avviata (backend: `pip install -r requirements.txt` → `alembic upgrade head` → `python tabula_server.py` in `c:\sviluppo\labs\tabula\backend`, oppure docker-compose) e **fermati**. Il lavoro di sviluppo vero resta possibile senza board (best-effort).
+- Se NON risponde: avvisa che la board non è avviata (backend: `pip install -r requirements.txt` → `alembic upgrade head` → `python tabula_server.py` nella cartella `backend/` del repo Tabula, oppure docker-compose) e **fermati**. Il lavoro di sviluppo vero resta possibile senza board (best-effort).
 
 ## 2. Product Owner — ingest & analisi (subagent `product-owner`)
 - Spawna **product-owner** passando `$ARGUMENTS` e `TABULA_API_URL`. Il PO rileva la sorgente:

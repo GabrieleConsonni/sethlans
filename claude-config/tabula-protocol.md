@@ -1,9 +1,8 @@
 # Protocollo Tabula — riflessione dello stato di lavoro
 
 `tabula` è la board che renderizza visivamente cosa stanno facendo i subagent del
-workspace. Vive in `c:\sviluppo\labs\tabula` come **API REST FastAPI + Postgres**
-(schema dedicato `tabula` nel db `akn-dev-local`, gestito con Alembic); il frontend
-React fa polling ogni 4s. Gli agenti riflettono il proprio stato **solo via HTTP**
+workspace. È una **API REST FastAPI + Postgres** (schema dedicato `tabula`, gestito
+con Alembic); il frontend React fa polling ogni 4s. Gli agenti riflettono il proprio stato **solo via HTTP**
 (nessun file da scrivere). Ogni epica/storia/task ha un **documento Markdown `md`**
 persistito a DB.
 

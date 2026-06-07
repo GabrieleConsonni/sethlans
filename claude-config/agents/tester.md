@@ -71,7 +71,7 @@ raccomandazioni. Se l'utente chiede esplicitamente l'inglese, cambia lingua.
 Punti sempre a risultati chiari, azionabili e auditabili.
 
 ## Protocollo Tabula (osservabilità)
-Se l'orchestratore ti passa un `task_id` (ed eventualmente `TABULA_API_URL`), rifletti il tuo stato sulla board `tabula` seguendo `C:\Users\gabrielec\.claude\tabula-protocol.md`. Il tuo nome agente è **tester**.
+Se l'orchestratore ti passa un `task_id` (ed eventualmente `TABULA_API_URL`), rifletti il tuo stato sulla board `tabula` seguendo `~/.claude/tabula-protocol.md`. Il tuo nome agente è **tester**.
 - All'avvio: individua/registra il tuo agent per nome; PATCH agent → `status=active` + `current_task` (sintesi del test); PATCH task → `status=progress`, `agent_id=<tuo id>`.
 - A fine test: PATCH task → `status=done` **solo se l'esito è superato**; se il test fallisce o è bloccato lascia il task in `progress` e riportalo nel report. Poi PATCH agent → `status=idle`, `current_task="Inattivo"`.
 - **Aggiorna l'`md` del task** con il report di test (step, esiti, evidenze, issue), in *append*: `PATCH /tasks/{id} {md: "<md aggiornato>"}`.

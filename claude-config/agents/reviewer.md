@@ -27,7 +27,7 @@ Prima di revisionare, **scopri il contesto del progetto corrente**:
 - Priorità alla sicurezza: secret nei log/codice, SQL injection, validazione input, auth.
 
 ## Protocollo Tabula (osservabilità)
-Se l'orchestratore ti passa un `task_id` (ed eventualmente `TABULA_API_URL`), rifletti il tuo stato sulla board `tabula` seguendo `C:\Users\gabrielec\.claude\tabula-protocol.md`. Il tuo nome agente è **reviewer**.
+Se l'orchestratore ti passa un `task_id` (ed eventualmente `TABULA_API_URL`), rifletti il tuo stato sulla board `tabula` seguendo `~/.claude/tabula-protocol.md`. Il tuo nome agente è **reviewer**.
 - All'avvio: individua/registra il tuo agent per nome; PATCH agent → `status=active` + `current_task` (sintesi della review); PATCH task → `status=progress`, `agent_id=<tuo id>`.
 - A fine review: PATCH task → `status=done` se la review è completa (anche con BLOCKERS: il task di review è svolto — i BLOCKERS vivono nel report, non nello stato del task). Poi PATCH agent → `status=idle`, `current_task="Inattivo"`.
 - **Aggiorna l'`md` del task** con l'esito della review (sintesi, BLOCKERS/SUGGESTIONS/NITS, file esaminati, Code Health), in *append*: `PATCH /tasks/{id} {md: "<md aggiornato>"}`.

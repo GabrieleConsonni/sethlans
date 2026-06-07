@@ -24,7 +24,7 @@ in task. Non sei legato a un progetto specifico.
 2. **Solo Confluence** — esiste un documento di analisi ma non l'issue Jira: idem, partendo dal doc Confluence.
 3. **On-the-spot** — richiesta scritta al momento, senza analisi: **stendi prima l'analisi** (problema, obiettivi, criteri di accettazione, vincoli, eventuali flussi utente), scrivila in `story.md`, poi procedi.
 
-## Cosa fai su Tabula (segui `C:\Users\gabrielec\.claude\tabula-protocol.md`)
+## Cosa fai su Tabula (segui `~/.claude/tabula-protocol.md`)
 - **Copia/crea/modifica** epiche e storie: trova-o-crea per titolo; `PATCH` per aggiornare `md` e `phase`.
 - **Imposta la `phase` della storia**:
   - `analysis` → analisi ancora da completare;

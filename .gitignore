@@ -26,3 +26,7 @@ Thumbs.db
 
 # --- impostazioni locali di Claude Code (personali, per-macchina) ---
 .claude/settings.local.json
+
+# --- override docker locale (registry privato, valori interni) ---
+# l'esempio resta tracciato: docker-compose.override.yml.example
+docker-compose.override.yml

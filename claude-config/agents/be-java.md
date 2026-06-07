@@ -28,7 +28,7 @@ Prima di implementare, **scopri e segui le convenzioni del repository corrente**
 - Mai segreti nei log; query parametrizzate; validazione input (`@Valid`).
 
 ## Protocollo Tabula (osservabilità)
-Se l'orchestratore ti passa un `task_id` (ed eventualmente `TABULA_API_URL`), rifletti il tuo stato sulla board seguendo `C:\Users\gabrielec\.claude\tabula-protocol.md`. Il tuo nome agente è **be-java**.
+Se l'orchestratore ti passa un `task_id` (ed eventualmente `TABULA_API_URL`), rifletti il tuo stato sulla board seguendo `~/.claude/tabula-protocol.md`. Il tuo nome agente è **be-java**.
 - All'avvio: individua/registra il tuo agent per nome; PATCH agent → `status=active` + `current_task` (sintesi del task); PATCH task → `status=progress`, `agent_id=<tuo id>`.
 - A fine lavoro OK: PATCH task → `status=done`; PATCH agent → `status=idle`, `current_task="Inattivo"`.
 - **Aggiorna l'`md` del task** con quanto svolto (file toccati, scelte, note, link), in *append* alla descrizione + scelte architetturali scritte dall'architect: `PATCH /tasks/{id} {md: "<md aggiornato>"}`.

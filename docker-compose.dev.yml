@@ -8,7 +8,7 @@ services:
     container_name: tabula-backend-dev
     command: sh -c "alembic upgrade head && uvicorn tabula_server:app --host 0.0.0.0 --port 9955 --reload"
     environment:
-      - TABULA_DB_URL=postgresql+psycopg2://postgres:password@host.docker.internal:5432/akn-dev-local
+      - TABULA_DB_URL=${TABULA_DB_URL:-postgresql+psycopg2://postgres:password@host.docker.internal:5432/tabula}
       - WATCHFILES_FORCE_POLLING=true   # reload affidabile sui bind mount Windows
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -29,7 +29,9 @@ services:
     volumes:
       - ./frontend:/app                 # sorgenti live
       - /app/node_modules               # node_modules del container (non sovrascritto dall'host)
-      - ${USERPROFILE}/.npmrc:/root/.npmrc:ro   # credenziali Nexus dall'host (npm install nel container)
+      # Registry npm pubblico di default. Dietro un registry privato/proxy, monta il tuo
+      # ~/.npmrc impostando NPMRC_FILE nel .env (vedi .env.example) e scommentando:
+      # - ${NPMRC_FILE}:/root/.npmrc:ro
     ports:
       - "5173:5173"
     depends_on:

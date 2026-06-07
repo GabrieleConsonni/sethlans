@@ -32,7 +32,7 @@ class Project(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     type: Mapped[str] = mapped_column(String, nullable=False, default="internal", server_default="internal")
-    # chiave del progetto Jira (es. "QFW"); vuota per i progetti interni
+    # chiave del progetto Jira (es. "ABC"); vuota per i progetti interni
     jira_key: Mapped[str] = mapped_column(String, default="", server_default="")
 
     def to_dict(self) -> dict:

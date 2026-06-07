@@ -10,7 +10,7 @@ COPY . .
 
 # Persistenza su Postgres esterno: configurare TABULA_DB_URL.
 # Default: Postgres in esecuzione sull'host (vedi docker-compose: host.docker.internal).
-ENV TABULA_DB_URL=postgresql+psycopg2://postgres:password@host.docker.internal:5432/akn-dev-local
+ENV TABULA_DB_URL=postgresql+psycopg2://postgres:password@host.docker.internal:5432/tabula
 
 EXPOSE 9955
 

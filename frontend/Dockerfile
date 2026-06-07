@@ -5,9 +5,10 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-# Credenziali Nexus via BuildKit secret (id=npmrc): il token NON finisce
-# nell'immagine. Build: docker compose build  (BuildKit attivo di default).
-RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm install
+# Registry npm pubblico di default. Per un registry privato/proxy puoi passare un
+# ~/.npmrc come BuildKit secret (id=npmrc): è OPZIONALE (required=false) e il token
+# NON finisce nell'immagine. Vedi docker-compose.override.yml.example.
+RUN --mount=type=secret,id=npmrc,required=false,target=/root/.npmrc npm install
 
 COPY . .
 

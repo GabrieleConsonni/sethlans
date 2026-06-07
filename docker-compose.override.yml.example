@@ -1,0 +1,20 @@
+# Override OPZIONALE per chi builda dietro un registry npm privato/proxy.
+#
+# `docker compose up` carica automaticamente docker-compose.yml + docker-compose.override.yml
+# (se presente). Copia questo file in `docker-compose.override.yml` (gitignorato) per
+# iniettare il tuo ~/.npmrc come BuildKit secret durante il build del frontend.
+#
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#
+# Il token NON finisce nell'immagine (è un secret di build). Il Dockerfile dichiara il
+# secret come opzionale (required=false): senza questo override il build usa il registry pubblico.
+
+services:
+  frontend:
+    build:
+      secrets:
+        - npmrc
+
+secrets:
+  npmrc:
+    file: ${NPMRC_FILE:-${USERPROFILE}/.npmrc}   # il tuo ~/.npmrc con registry + token

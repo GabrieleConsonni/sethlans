@@ -6,7 +6,7 @@ Lo schema è applicato a runtime con `schema_translate_map` (i modelli non lo
 dichiarano), così la stessa metadata serve sia all'app sia ad Alembic.
 
 Connessione configurabile via env `TABULA_DB_URL`
-(default: il Postgres di dev `akn-dev-local`).
+(default: il Postgres di dev `tabula`).
 """
 
 import os
@@ -18,7 +18,7 @@ SCHEMA = "tabula"
 
 TABULA_DB_URL = os.environ.get(
     "TABULA_DB_URL",
-    "postgresql+psycopg2://postgres:password@localhost:5432/akn-dev-local",
+    "postgresql+psycopg2://postgres:password@localhost:5432/tabula",
 )
 
 # `schema_translate_map={None: SCHEMA}` mappa le tabelle (schema implicito) sullo

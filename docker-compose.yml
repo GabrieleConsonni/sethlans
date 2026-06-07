@@ -3,8 +3,8 @@ services:
     build: ./backend
     container_name: tabula-backend
     environment:
-      # Postgres esistente sull'host (schema dedicato `tabula`).
-      - TABULA_DB_URL=postgresql+psycopg2://postgres:password@host.docker.internal:5432/akn-dev-local
+      # Postgres sull'host (schema dedicato `tabula`). Override via .env (vedi .env.example).
+      - TABULA_DB_URL=${TABULA_DB_URL:-postgresql+psycopg2://postgres:password@host.docker.internal:5432/tabula}
     extra_hosts:
       - "host.docker.internal:host-gateway"   # raggiunge il Postgres dell'host su Linux
     ports:
@@ -17,15 +17,11 @@ services:
       args:
         # URL usato dal browser per raggiungere il backend sull'host
         VITE_API_URL: http://localhost:9955
-      secrets:
-        - npmrc            # credenziali Nexus per `npm install` (vedi Dockerfile)
+      # Per un registry npm privato/proxy, aggiungi il secret `npmrc` via
+      # docker-compose.override.yml (vedi docker-compose.override.yml.example).
     container_name: tabula-frontend
     ports:
       - "5173:80"
     depends_on:
       - backend
     restart: unless-stopped
-
-secrets:
-  npmrc:
-    file: ${USERPROFILE}/.npmrc   # il tuo ~/.npmrc con registry + _authToken Nexus

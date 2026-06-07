@@ -24,7 +24,7 @@ def run():
         # progetto di default (riusa quello creato dalla migrazione se presente)
         project = s.query(Project).first()
         if project is None:
-            project = Project(id=new_id("p"), name="Quality flow", type="jira", jira_key="QFW")
+            project = Project(id=new_id("p"), name="Demo", type="internal", jira_key="")
             s.add(project)
             s.flush()
         if s.query(Epic).count() == 0:
