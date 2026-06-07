@@ -1,0 +1,37 @@
+# Modalità SVILUPPO con hot-reload.
+# I sorgenti sono montati nei container: ogni modifica viene applicata al volo,
+# senza ricostruire le immagini.
+#   Avvio:  docker compose -f docker-compose.dev.yml up   (oppure dev-tabula.bat)
+services:
+  backend:
+    build: ./backend
+    container_name: tabula-backend-dev
+    command: sh -c "alembic upgrade head && uvicorn tabula_server:app --host 0.0.0.0 --port 9955 --reload"
+    environment:
+      - TABULA_DB_URL=postgresql+psycopg2://postgres:password@host.docker.internal:5432/akn-dev-local
+      - WATCHFILES_FORCE_POLLING=true   # reload affidabile sui bind mount Windows
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./backend:/app                  # sorgenti live
+    ports:
+      - "9955:9955"
+    restart: unless-stopped
+
+  frontend:
+    image: node:20-alpine
+    container_name: tabula-frontend-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      - VITE_API_URL=http://localhost:9955
+      - VITE_USE_POLLING=true           # rileva le modifiche sui bind mount Windows
+    volumes:
+      - ./frontend:/app                 # sorgenti live
+      - /app/node_modules               # node_modules del container (non sovrascritto dall'host)
+      - ${USERPROFILE}/.npmrc:/root/.npmrc:ro   # credenziali Nexus dall'host (npm install nel container)
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
