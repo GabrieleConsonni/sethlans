@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Installa il toolkit Sethlans nella home globale di Claude Code (~/.claude).
-# Copia il command /sethlans, i subagent generici e il protocollo Tabula.
+# Installs the Sethlans toolkit into Claude Code's global home (~/.claude).
+# Copies the /sethlans command, the generic subagents, and the Tabula protocol.
 #
-# Uso:
-#   ./install.sh            # copia (salta i file gia presenti)
-#   ./install.sh --force    # sovrascrive
+# Usage:
+#   ./install.sh            # copy (skips files that already exist)
+#   ./install.sh --force    # overwrite
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,17 +12,17 @@ DEST="${HOME}/.claude"
 FORCE=0
 [[ "${1:-}" == "--force" ]] && FORCE=1
 
-echo "Installazione toolkit Sethlans -> $DEST"
+echo "Installing Sethlans toolkit -> $DEST"
 mkdir -p "$DEST/commands" "$DEST/agents"
 
 copy_safe() {
   local from="$1" to="$2"
   if [[ -e "$to" && $FORCE -eq 0 ]]; then
-    echo "  esiste gia: $to (usa --force per sovrascrivere) - salto"
+    echo "  already exists: $to (use --force to overwrite) - skipping"
     return
   fi
   cp "$from" "$to"
-  echo "  copiato: $to"
+  echo "  copied: $to"
 }
 
 copy_safe "$SRC/commands/sethlans.md" "$DEST/commands/sethlans.md"
@@ -31,4 +31,4 @@ for f in "$SRC"/agents/*.md; do
   copy_safe "$f" "$DEST/agents/$(basename "$f")"
 done
 
-echo "Fatto. Riavvia Claude Code e digita /sethlans per usarlo."
+echo "Done. Restart Claude Code and type /sethlans to use it."

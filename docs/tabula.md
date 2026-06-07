@@ -1,29 +1,29 @@
-# Tabula — il componente visivo di Sethlans
+# Tabula — the visual component of Sethlans
 
-**Tabula** è la board che rende visibile cosa stanno facendo i subagent orchestrati da
-[Sethlans](../README.md): organizza il lavoro per **progetti** (un progetto Jira oppure
-uno interno) e, dentro ciascun progetto, mostra **epiche**, **storie**, **task** e lo
-stato/consumo degli **agenti** (pool condiviso tra i progetti).
+**Tabula** is the board that makes visible what the subagents orchestrated by
+[Sethlans](../README.md) are doing: it organizes work by **projects** (a Jira project or
+an internal one) and, within each project, displays **epics**, **stories**, **tasks**, and the
+state/consumption of the **agents** (a pool shared across projects).
 
-È composta da un backend con API REST (FastAPI + Postgres, schema `tabula`, migrazioni
-Alembic) e da un frontend React (Vite). Ogni epica/storia/task ha un documento
-**Markdown** (`md`) associato; le storie hanno una **fase** (`phase`). Il progetto attivo
-si seleziona dalla combo nell'header (con il `+` per crearne uno nuovo).
+It consists of a backend with a REST API (FastAPI + Postgres, `tabula` schema, Alembic
+migrations) and a React frontend (Vite). Each epic/story/task has an associated
+**Markdown** document (`md`); stories have a **phase** (`phase`). The active project
+is selected from the combo box in the header (with the `+` to create a new one).
 
-I subagent scrivono sul backend via API (vedi [tabula-protocol.md](../claude-config/tabula-protocol.md));
-il frontend mostra lo stato e si aggiorna in automatico (polling ~4s). Aggiornare la board
-è **best-effort**: se non risponde, il lavoro di sviluppo prosegue comunque.
+The subagents write to the backend via the API (see [tabula-protocol.md](../claude-config/tabula-protocol.md));
+the frontend displays the state and updates automatically (polling ~4s). Updating the board
+is **best-effort**: if it does not respond, development work continues anyway.
 
-## Struttura
+## Structure
 
 ```
 backend/
-├── tabula_server.py        # API FastAPI (endpoint CRUD + /state)
-├── models.py               # modelli ORM SQLAlchemy (epics/stories/tasks/agents)
-├── db.py                   # engine Postgres + schema `tabula`
-├── alembic/                # migrazioni (env.py + versions/)
+├── tabula_server.py        # FastAPI API (CRUD endpoints + /state)
+├── models.py               # SQLAlchemy ORM models (epics/stories/tasks/agents)
+├── db.py                   # Postgres engine + `tabula` schema
+├── alembic/                # migrations (env.py + versions/)
 ├── alembic.ini
-├── seed.py                 # seed opzionale (agent canonici + demo)
+├── seed.py                 # optional seed (canonical agents + demo)
 └── requirements.txt
 frontend/
 ├── index.html
@@ -32,48 +32,48 @@ frontend/
 ├── .env.example
 └── src/
     ├── main.jsx
-    ├── api.js              # client delle API
-    ├── App.jsx             # stato + routing tra le viste
+    ├── api.js              # API client
+    ├── App.jsx             # state + routing between views
     ├── styles.css
     └── components/
-        ├── ProjectSwitcher.jsx # combo progetto + crea progetto (header)
-        ├── Agenda.jsx      # home: epiche (sx) + storie (dx)
-        ├── StoryPage.jsx   # dettaglio storia: tab Munera + Periti
-        ├── Munera.jsx      # board dei task
-        ├── Periti.jsx      # griglia agenti
-        └── shared.jsx      # pezzi riusati (ColHeader, EditBox, ecc.)
+        ├── ProjectSwitcher.jsx # project combo + create project (header)
+        ├── Agenda.jsx      # home: epics (left) + stories (right)
+        ├── StoryPage.jsx   # story detail: Munera + Periti tabs
+        ├── Munera.jsx      # task board
+        ├── Periti.jsx      # agent grid
+        └── shared.jsx      # reused pieces (ColHeader, EditBox, etc.)
 ```
 
-## Avvio con Docker (consigliato)
+## Running with Docker (recommended)
 
-Serve [Docker Desktop](https://www.docker.com/products/docker-desktop/) in esecuzione.
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) running.
 
-Doppio clic su **`tabula.bat`** (oppure da terminale `docker compose up --build -d`).
-Lo script costruisce le immagini, avvia i container e apre il browser.
+Double-click **`tabula.bat`** (or run `docker compose up --build -d` from a terminal).
+The script builds the images, starts the containers, and opens the browser.
 
-- Interfaccia: <http://localhost:5173>
+- Interface: <http://localhost:5173>
 - API / docs: <http://localhost:9955/docs>
 
-Per fermare tutto: doppio clic su **`stop-tabula.bat`** (oppure `docker compose down`).
+To stop everything: double-click **`stop-tabula.bat`** (or `docker compose down`).
 
-Il backend si appoggia a un **Postgres esterno** (default: db `tabula`, schema `tabula`)
-configurato via `TABULA_DB_URL`. All'avvio del container vengono applicate le migrazioni
-(`alembic upgrade head`). Per i valori locali (host/credenziali) copia `.env.example` in
-`.env` (gitignorato); per un registry npm privato vedi `docker-compose.override.yml.example`.
+The backend relies on an **external Postgres** (default: db `tabula`, schema `tabula`)
+configured via `TABULA_DB_URL`. When the container starts, the migrations are applied
+(`alembic upgrade head`). For local values (host/credentials) copy `.env.example` to
+`.env` (gitignored); for a private npm registry see `docker-compose.override.yml.example`.
 
-### Modalità sviluppo (hot-reload)
+### Development mode (hot-reload)
 
-Doppio clic su **`dev-tabula.bat`** (oppure `docker compose -f docker-compose.dev.yml up --build`).
+Double-click **`dev-tabula.bat`** (or `docker compose -f docker-compose.dev.yml up --build`).
 
-I sorgenti di `backend/` e `frontend/` sono montati nei container: ogni modifica viene
-applicata automaticamente, senza ricostruire le immagini.
+The `backend/` and `frontend/` sources are mounted into the containers: every change is
+applied automatically, without rebuilding the images.
 
-- Backend: `uvicorn --reload` ricarica al salvataggio dei file Python.
-- Frontend: dev server di Vite con hot module replacement.
+- Backend: `uvicorn --reload` reloads when Python files are saved.
+- Frontend: Vite dev server with hot module replacement.
 
-Stesse porte e stesso volume DB della modalità normale. Per fermare: `stop-tabula.bat`.
+Same ports and same DB volume as normal mode. To stop: `stop-tabula.bat`.
 
-## Avvio rapido (senza Docker)
+## Quick start (without Docker)
 
 ### 1. Backend
 
@@ -83,75 +83,75 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 # Postgres: default postgresql+psycopg2://postgres:password@localhost:5432/tabula
-# (override con la variabile d'ambiente TABULA_DB_URL)
-alembic upgrade head               # crea lo schema `tabula` e le tabelle
+# (override with the TABULA_DB_URL environment variable)
+alembic upgrade head               # creates the `tabula` schema and the tables
 python tabula_server.py            # http://localhost:9955  (docs: /docs)
 ```
 
-La board parte **vuota**. Per popolare agent canonici + dati demo: `python seed.py`.
+The board starts **empty**. To populate canonical agents + demo data: `python seed.py`.
 
 ### 2. Frontend
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env               # opzionale: cambia l'URL del backend
+cp .env.example .env               # optional: change the backend URL
 npm run dev                        # http://localhost:5173
 ```
 
-Il frontend legge `VITE_API_URL` (default `http://localhost:9955`). Puoi anche cambiarlo a
-runtime dal campo in alto nell'interfaccia.
+The frontend reads `VITE_API_URL` (default `http://localhost:9955`). You can also change it at
+runtime from the field at the top of the interface.
 
-## API in breve
+## API in brief
 
-Risorse: `projects`, `epics`, `stories`, `tasks`, `agents`. Ognuna con:
+Resources: `projects`, `epics`, `stories`, `tasks`, `agents`. Each one with:
 
-| Metodo | Path              | Azione                    |
+| Method | Path              | Action                    |
 |--------|-------------------|---------------------------|
-| GET    | `/{risorsa}`      | lista (con filtri)        |
-| POST   | `/{risorsa}`      | crea                      |
-| GET    | `/{risorsa}/{id}` | leggi                     |
-| PATCH  | `/{risorsa}/{id}` | modifica parziale         |
-| DELETE | `/{risorsa}/{id}` | cancella                  |
+| GET    | `/{resource}`     | list (with filters)       |
+| POST   | `/{resource}`     | create                    |
+| GET    | `/{resource}/{id}`| read                      |
+| PATCH  | `/{resource}/{id}`| partial update            |
+| DELETE | `/{resource}/{id}`| delete                    |
 
-Filtri: `/epics?project_id=`, `/stories?epic_id=`, `/tasks?story_id=`, `/tasks?agent_id=`, `?status=`, `/projects?type=`.
-Snapshot completo: `GET /state`.
+Filters: `/epics?project_id=`, `/stories?epic_id=`, `/tasks?story_id=`, `/tasks?agent_id=`, `?status=`, `/projects?type=`.
+Full snapshot: `GET /state`.
 
-### Esempio: un subagent aggiorna il proprio lavoro
+### Example: a subagent updates its own work
 
 ```bash
-# prende in carico un task
+# takes a task
 curl -X PATCH localhost:9955/tasks/t3 \
   -H "Content-Type: application/json" \
   -d '{"status":"progress","agent_id":"a2"}'
 
-# aggiorna stato e consumo dell'agente
+# updates the agent's state and consumption
 curl -X PATCH localhost:9955/agents/a2 \
   -H "Content-Type: application/json" \
   -d '{"current_task":"Test end-to-end","status":"active","tokens":92000}'
 
-# completa il task
+# completes the task
 curl -X PATCH localhost:9955/tasks/t3 -H "Content-Type: application/json" -d '{"status":"done"}'
 ```
 
-## Schema dati
+## Data schema
 
 ```
-Project { id, name, type, jira_key }                                   type: jira|internal ; jira_key: chiave Jira (vuota se interno)
+Project { id, name, type, jira_key }                                   type: jira|internal ; jira_key: Jira key (empty if internal)
 Epic   { id, title, desc, status, project_id, md, md_updated_at }       status: todo|progress|done
 Story  { id, title, desc, status, phase, epic_id, md, md_updated_at }  status: todo|progress|done ; phase: analysis|ux|design|dev|done
 Task   { id, title, status, story_id, agent_id, md, md_updated_at }    status: todo|progress|done
-Agent  { id, name, current_task, status, tokens }                      status: active|idle (pool condiviso, non legato a un progetto)
+Agent  { id, name, current_task, status, tokens }                      status: active|idle (shared pool, not tied to a project)
 ```
 
-Gerarchia: **Project → Epic → Story → Task**. Cancellando un progetto vengono rimosse a
-cascata epiche/storie/task collegati.
+Hierarchy: **Project → Epic → Story → Task**. Deleting a project cascade-removes the
+linked epics/stories/tasks.
 
-`md` = documento Markdown associato (per le storie può contenere mockup HTML in blocchi
-` ```mockup `, renderizzati nella UI in un iframe sandbox).
+`md` = associated Markdown document (for stories it can contain HTML mockups in
+` ```mockup ` blocks, rendered in the UI inside a sandboxed iframe).
 
-## Note
+## Notes
 
-- CORS è aperto a tutte le origini per comodità di sviluppo: in produzione restringere `allow_origins`.
-- Persistenza su Postgres (schema `tabula`), migrazioni con Alembic: `alembic upgrade head` / `alembic revision -m "..."`. Connessione via `TABULA_DB_URL`.
-- Nessuna autenticazione: aggiungere un token se esposto in rete.
+- CORS is open to all origins for development convenience: in production, restrict `allow_origins`.
+- Persistence on Postgres (`tabula` schema), migrations with Alembic: `alembic upgrade head` / `alembic revision -m "..."`. Connection via `TABULA_DB_URL`.
+- No authentication: add a token if exposed on the network.

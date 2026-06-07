@@ -1,10 +1,10 @@
 <#
-  Installa il toolkit Sethlans nella home globale di Claude Code (~/.claude).
-  Copia il command /sethlans, i subagent generici e il protocollo Tabula.
+  Installs the Sethlans toolkit into Claude Code's global home (~/.claude).
+  Copies the /sethlans command, the generic subagents, and the Tabula protocol.
 
-  Uso:
-    pwsh ./install.ps1            # copia (chiede conferma se sovrascrive)
-    pwsh ./install.ps1 -Force     # sovrascrive senza chiedere
+  Usage:
+    pwsh ./install.ps1            # copy (prompts for confirmation if overwriting)
+    pwsh ./install.ps1 -Force     # overwrite without prompting
 #>
 param([switch]$Force)
 
@@ -12,19 +12,19 @@ $ErrorActionPreference = 'Stop'
 $src = $PSScriptRoot
 $dest = Join-Path $env:USERPROFILE '.claude'
 
-Write-Host "Installazione toolkit Sethlans -> $dest" -ForegroundColor Cyan
+Write-Host "Installing Sethlans toolkit -> $dest" -ForegroundColor Cyan
 
-# cartelle di destinazione
+# destination folders
 New-Item -ItemType Directory -Force -Path (Join-Path $dest 'commands') | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $dest 'agents')   | Out-Null
 
 function Copy-Item-Safe($from, $to) {
     if ((Test-Path $to) -and -not $Force) {
-        Write-Host "  esiste gia: $to (usa -Force per sovrascrivere) - salto" -ForegroundColor Yellow
+        Write-Host "  already exists: $to (use -Force to overwrite) - skipping" -ForegroundColor Yellow
         return
     }
     Copy-Item $from $to -Force
-    Write-Host "  copiato: $to" -ForegroundColor Green
+    Write-Host "  copied: $to" -ForegroundColor Green
 }
 
 Copy-Item-Safe (Join-Path $src 'commands\sethlans.md') (Join-Path $dest 'commands\sethlans.md')
@@ -34,4 +34,4 @@ Get-ChildItem (Join-Path $src 'agents') -Filter *.md | ForEach-Object {
     Copy-Item-Safe $_.FullName (Join-Path $dest "agents\$($_.Name)")
 }
 
-Write-Host "Fatto. Riavvia Claude Code e digita /sethlans per usarlo." -ForegroundColor Cyan
+Write-Host "Done. Restart Claude Code and type /sethlans to use it." -ForegroundColor Cyan

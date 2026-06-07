@@ -1,131 +1,132 @@
 # CLAUDE.md — Tabula
 
-Guida per gli agenti che lavorano su questo repository. È il documento che i subagent
-generici leggono per orientarsi: stack, comandi, struttura e convenzioni del progetto.
+Guide for agents working on this repository. It is the document that generic subagents
+read to get oriented: the project's stack, commands, structure, and conventions.
 
-## Cos'è
+## What it is
 
-**Tabula** è una board che visualizza il lavoro dei subagent di Claude, organizzato per
-**progetti** → **epiche** → **storie** → **task**, più un pool condiviso di **agenti**.
-Ogni epica/storia/task ha un documento **Markdown (`md`)**; le storie hanno una **`phase`**
-che modella il flusso PO→UX→architect→dev. È composta da:
+**Tabula** is a board that visualizes the work of Claude's subagents, organized by
+**projects** → **epics** → **stories** → **tasks**, plus a shared pool of **agents**.
+Every epic/story/task has a **Markdown (`md`)** document; stories have a **`phase`**
+that models the PO→UX→architect→dev flow. It is composed of:
 
-- **`backend/`** — API REST (FastAPI) su Postgres, schema dedicato `tabula`, migrazioni Alembic.
-- **`frontend/`** — SPA React (Vite) che fa polling dello stato ogni ~4s.
-- **`claude-config/`** — configurazione globale di Claude Code (command `/sethlans`, subagent,
-  protocollo della board). Non fa parte dell'app: si installa in `~/.claude/` (vedi
+- **`backend/`** — REST API (FastAPI) on Postgres, dedicated `tabula` schema, Alembic migrations.
+- **`frontend/`** — React SPA (Vite) that polls the state every ~4s.
+- **`claude-config/`** — global Claude Code configuration (`/sethlans` command, subagents,
+  board protocol). It is not part of the app: it is installed in `~/.claude/` (see
   [`claude-config/README.md`](claude-config/README.md)).
 
 ## Stack
 
-| Area      | Tecnologie |
+| Area      | Technologies |
 |-----------|-----------|
 | Backend   | Python 3.11+, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, Uvicorn |
-| Database  | PostgreSQL (schema dedicato `tabula`), psycopg2 |
-| Frontend  | React 18, Vite 5, lucide-react (no framework UI aggiuntivi) |
+| Database  | PostgreSQL (dedicated `tabula` schema), psycopg2 |
+| Frontend  | React 18, Vite 5, lucide-react (no additional UI frameworks) |
 | Runtime   | Docker / docker-compose (backend :9955, frontend :5173) |
 
-## Struttura
+## Structure
 
 ```
 backend/
-  tabula_server.py     # API FastAPI: CRUD projects/epics/stories/tasks/agents + GET /state
-  models.py            # ORM + enum applicativi (STATUS_*, PHASE_STORY, TYPE_PROJECT) + new_id()
-  db.py                # engine Postgres + schema_translate_map({None: "tabula"})
-  alembic/             # migrazioni (env.py + versions/)
-  seed.py              # seed opzionale (agent canonici + dati demo)
+  tabula_server.py     # FastAPI API: CRUD projects/epics/stories/tasks/agents + GET /state
+  models.py            # ORM + application enums (STATUS_*, PHASE_STORY, TYPE_PROJECT) + new_id()
+  db.py                # Postgres engine + schema_translate_map({None: "tabula"})
+  alembic/             # migrations (env.py + versions/)
+  seed.py              # optional seed (canonical agents + demo data)
   requirements.txt
 frontend/
-  src/api.js           # client delle API (legge VITE_API_URL)
-  src/App.jsx          # stato globale + routing tra le viste
-  src/components/      # Agenda, StoryPage, Munera (task), Periti (agenti), ProjectSwitcher, shared
-claude-config/         # toolkit Sethlans (command + agent + protocollo) — vedi README dedicato
+  src/api.js           # API client (reads VITE_API_URL)
+  src/App.jsx          # global state + routing between views
+  src/components/      # Agenda, StoryPage, Munera (task), Periti (agents), ProjectSwitcher, shared
+claude-config/         # Sethlans toolkit (command + agents + protocol) — see dedicated README
 docker-compose.yml     # build+run (prod-like); docker-compose.dev.yml = hot-reload
 ```
 
-## Come avviare
+## How to start
 
-### Docker (consigliato)
-Richiede Docker Desktop e un Postgres raggiungibile su `host.docker.internal:5432`.
+### Docker (recommended)
+Requires Docker Desktop and a Postgres reachable at `host.docker.internal:5432`.
 ```bash
-docker compose up --build -d            # oppure: tabula.bat (Windows)
-docker compose -f docker-compose.dev.yml up --build   # hot-reload di backend+frontend
-docker compose down                     # stop  (oppure: stop-tabula.bat)
+docker compose up --build -d            # or: tabula.bat (Windows)
+docker compose -f docker-compose.dev.yml up --build   # hot-reload of backend+frontend
+docker compose down                     # stop  (or: stop-tabula.bat)
 ```
-Interfaccia → http://localhost:5173 · API/docs → http://localhost:9955/docs
+Interface → http://localhost:5173 · API/docs → http://localhost:9955/docs
 
-> Il build del frontend usa il registry npm pubblico. Dietro un registry privato/proxy,
-> fornisci un `~/.npmrc` come secret tramite `docker-compose.override.yml` (vedi
-> `docker-compose.override.yml.example`); il secret è opzionale e non finisce nell'immagine.
+> The frontend build uses the public npm registry. Behind a private registry/proxy,
+> provide a `~/.npmrc` as a secret via `docker-compose.override.yml` (see
+> `docker-compose.override.yml.example`); the secret is optional and does not end up in the image.
 
-### Senza Docker
+### Without Docker
 ```bash
 # Backend
 cd backend
 python -m venv .venv && .venv\Scripts\activate     # PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-alembic upgrade head                                # crea schema `tabula` + tabelle
-python tabula_server.py                             # :9955  (override porta: TABULA_PORT)
-python seed.py                                       # opzionale: agent canonici + demo
+alembic upgrade head                                # creates `tabula` schema + tables
+python tabula_server.py                             # :9955  (port override: TABULA_PORT)
+python seed.py                                       # optional: canonical agents + demo
 
 # Frontend
 cd frontend
 npm install
-copy .env.example .env                              # opzionale (VITE_API_URL)
+copy .env.example .env                              # optional (VITE_API_URL)
 npm run dev                                          # :5173
 ```
 
-## Configurazione (variabili d'ambiente)
+## Configuration (environment variables)
 
-| Variabile        | Dove        | Default | Note |
+| Variable         | Where       | Default | Notes |
 |------------------|-------------|---------|------|
-| `TABULA_DB_URL`  | backend     | `postgresql+psycopg2://postgres:password@localhost:5432/tabula` | connessione Postgres |
-| `TABULA_PORT`    | backend     | `9955`  | porta API |
-| `VITE_API_URL`   | frontend    | `http://localhost:9955` | base URL del backend (anche runtime, dal campo in header) |
+| `TABULA_DB_URL`  | backend     | `postgresql+psycopg2://postgres:password@localhost:5432/tabula` | Postgres connection |
+| `TABULA_PORT`    | backend     | `9955`  | API port |
+| `VITE_API_URL`   | frontend    | `http://localhost:9955` | backend base URL (also at runtime, from the header field) |
 
-## API & modello dati
+## API & data model
 
-Risorse REST uniformi (`GET/POST` collezione, `GET/PATCH/DELETE` per id):
-`projects`, `epics`, `stories`, `tasks`, `agents`. Snapshot completo: `GET /state`.
-Filtri: `/epics?project_id=`, `/stories?epic_id=`, `/tasks?story_id=`, `/tasks?agent_id=`, `?status=`.
+Uniform REST resources (`GET/POST` collection, `GET/PATCH/DELETE` by id):
+`projects`, `epics`, `stories`, `tasks`, `agents`. Full snapshot: `GET /state`.
+Filters: `/epics?project_id=`, `/stories?epic_id=`, `/tasks?story_id=`, `/tasks?agent_id=`, `?status=`.
 
 ```
 Project { id, name, type, jira_key }                        type ∈ {jira, internal}
 Epic    { id, title, desc, status, project_id, md }         status ∈ {todo, progress, done}
 Story   { id, title, desc, status, phase, epic_id, md }     phase ∈ {analysis, ux, design, dev, done}
 Task    { id, title, status, story_id, agent_id, md }       status ∈ {todo, progress, done}
-Agent   { id, name, current_task, status, tokens }          status ∈ {active, idle}  (pool condiviso)
+Agent   { id, name, current_task, status, tokens }          status ∈ {active, idle}  (shared pool)
 ```
-Gerarchia **Project → Epic → Story → Task** con delete a cascata. `md` = documento Markdown
-(le storie possono contenere mockup HTML in blocchi ` ```mockup `, renderizzati in iframe sandbox).
-`md_updated_at` lo imposta il server quando `md` cambia.
+**Project → Epic → Story → Task** hierarchy with cascade delete. `md` = Markdown document
+(stories can contain HTML mockups in ` ```mockup ` blocks, rendered in a sandboxed iframe).
+`md_updated_at` is set by the server when `md` changes.
 
-## Convenzioni (rispettarle)
+## Conventions (follow them)
 
-- **ID generati dal server**: prefisso tipo + 8 hex (`new_id()` in `models.py`, es. `s1a2b3c4`).
-  Mai inventarli lato client: usare l'`id` restituito dalle POST / letto dalle GET.
-- **Enum validati nell'API**: usare solo i valori in `STATUS_WORK`/`STATUS_AGENT`/`PHASE_STORY`/
-  `TYPE_PROJECT` (`models.py`). L'API rifiuta valori fuori enum.
-- **Schema implicito**: i modelli NON dichiarano lo schema `tabula`; è tradotto a runtime via
-  `schema_translate_map` (`db.py` e `alembic/env.py`). Non aggiungere `__table_args__={"schema": ...}`.
-- **Migrazioni**: ogni cambio ai modelli richiede una revision Alembic
-  (`alembic revision --autogenerate -m "..."` → revisione → `alembic upgrade head`).
-  Non modificare lo schema a mano nel DB.
-- **Backend in italiano**: docstring e commenti del progetto sono in italiano; mantenere lo stile.
-- **CORS aperto** a tutte le origini per comodità di sviluppo (`tabula_server.py`): in produzione
-  va ristretto. Nessuna autenticazione: non esporre in rete senza aggiungere un token.
+- **Server-generated IDs**: type prefix + 8 hex (`new_id()` in `models.py`, e.g. `s1a2b3c4`).
+  Never invent them on the client side: use the `id` returned by POSTs / read from GETs.
+- **Enums validated in the API**: use only the values in `STATUS_WORK`/`STATUS_AGENT`/`PHASE_STORY`/
+  `TYPE_PROJECT` (`models.py`). The API rejects values outside the enum.
+- **Implicit schema**: the models do NOT declare the `tabula` schema; it is translated at runtime via
+  `schema_translate_map` (`db.py` and `alembic/env.py`). Do not add `__table_args__={"schema": ...}`.
+- **Migrations**: every change to the models requires an Alembic revision
+  (`alembic revision --autogenerate -m "..."` → review → `alembic upgrade head`).
+  Do not modify the schema by hand in the DB.
+- **Code in Italian**: docstrings and comments in this repo are currently written in Italian
+  (the prose docs are in English); keep the existing style when editing code.
+- **Open CORS** to all origins for development convenience (`tabula_server.py`): in production
+  it must be restricted. No authentication: do not expose on the network without adding a token.
 
-## Test
+## Tests
 
-Non è ancora configurata una suite automatica (niente `pytest`/test nel repo). Convenzione attesa
-per nuovo codice: **pytest** lato backend (in `backend/tests/`, con DB di test o Testcontainers) e
-verifica manuale del flusso UI lato frontend. Aggiungere `pytest` a `requirements.txt` quando si
-introducono i primi test.
+An automated suite is not yet configured (no `pytest`/tests in the repo). Expected convention
+for new code: **pytest** on the backend (in `backend/tests/`, with a test DB or Testcontainers) and
+manual verification of the UI flow on the frontend. Add `pytest` to `requirements.txt` when the
+first tests are introduced.
 
-## Orchestrazione (Sethlans)
+## Orchestration (Sethlans)
 
-Il flusso PO→UX→architect→dev su questa board è guidato dal command `/sethlans` e dai subagent in
-[`claude-config/`](claude-config/README.md). Il contratto d'integrazione con la board (base URL,
-ricette, enum, mappa task→agent) è in [`claude-config/tabula-protocol.md`](claude-config/tabula-protocol.md):
-è la **single source of truth** per le chiamate alla board. Aggiornare Tabula è **best-effort e mai
-bloccante** — se la board non risponde, il lavoro di sviluppo prosegue comunque.
+The PO→UX→architect→dev flow on this board is driven by the `/sethlans` command and the subagents in
+[`claude-config/`](claude-config/README.md). The integration contract with the board (base URL,
+recipes, enums, task→agent map) is in [`claude-config/tabula-protocol.md`](claude-config/tabula-protocol.md):
+it is the **single source of truth** for calls to the board. Updating Tabula is **best-effort and never
+blocking** — if the board does not respond, development work continues anyway.

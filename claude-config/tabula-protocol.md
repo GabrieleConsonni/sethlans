@@ -1,47 +1,47 @@
-# Protocollo Tabula — riflessione dello stato di lavoro
+# Tabula Protocol — reflecting work state
 
-`tabula` è la board che renderizza visivamente cosa stanno facendo i subagent del
-workspace. È una **API REST FastAPI + Postgres** (schema dedicato `tabula`, gestito
-con Alembic); il frontend React fa polling ogni 4s. Gli agenti riflettono il proprio stato **solo via HTTP**
-(nessun file da scrivere). Ogni epica/storia/task ha un **documento Markdown `md`**
-persistito a DB.
+`tabula` is the board that visually renders what the workspace subagents are doing.
+It is a **FastAPI REST API + Postgres** (dedicated `tabula` schema, managed
+with Alembic); the React frontend polls every 4s. Agents reflect their own state **only via HTTP**
+(no files to write). Each epic/story/task has a **Markdown document `md`**
+persisted in the DB.
 
-Questo documento è la **single source of truth** dell'integrazione: i subagent e
-il comando di orchestrazione lo referenziano invece di duplicare le ricette.
-È **trasversale ai progetti**: vive nella home globale (`~/.claude/`) e non dipende
-da alcun workspace specifico.
+This document is the **single source of truth** of the integration: the subagents and
+the orchestration command reference it instead of duplicating the recipes.
+It is **cross-project**: it lives in the global home (`~/.claude/`) and does not depend
+on any specific workspace.
 
-## Principio guida — best-effort, mai bloccante
-Aggiornare Tabula è **osservabilità**, non parte del lavoro reale.
-- Se Tabula non risponde (connection refused, timeout, errore HTTP), **NON bloccare** il task: procedi col lavoro vero e segnala nel risultato che l'aggiornamento board è fallito.
-- Avvolgi sempre le chiamate in `try/catch` (PowerShell) e non far fallire il turno per un errore di rete verso la board.
+## Guiding principle — best-effort, never blocking
+Updating Tabula is **observability**, not part of the real work.
+- If Tabula does not respond (connection refused, timeout, HTTP error), **DO NOT block** the task: proceed with the real work and report in the result that the board update failed.
+- Always wrap the calls in `try/catch` (PowerShell) and must not fail the turn over a network error toward the board.
 
 ## Base URL
-- Default: `http://localhost:9955`. Override con la variabile d'ambiente `TABULA_API_URL`.
-- Healthcheck: `GET /state` (se risponde 200, la board è raggiungibile).
+- Default: `http://localhost:9955`. Override with the environment variable `TABULA_API_URL`.
+- Healthcheck: `GET /state` (if it responds 200, the board is reachable).
 
-## Modello dati (campi esatti)
+## Data model (exact fields)
 - **epic**: `id, title, desc, status, md, md_updated_at` — status ∈ `{todo, progress, done}`
 - **story**: `id, title, desc, status, phase, epic_id, md, md_updated_at` — status ∈ `{todo, progress, done}`, phase ∈ `{analysis, ux, design, dev, done}`
 - **task**: `id, title, status, story_id, agent_id?, md, md_updated_at` — status ∈ `{todo, progress, done}`
 - **agent**: `id, name, current_task, status, tokens` — status ∈ `{active, idle}`
 
-`md` è il documento Markdown associato (analisi/mockup per le storie, descrizione +
-scelte architetturali + note di lavoro per i task). `md_updated_at` è impostato dal
-server quando l'`md` cambia. Gli ID sono generati dal server (prefisso `e/s/t/a` +
-8 hex): **non inventarli**, usa sempre l'`id` restituito dalle POST o letto dalle GET.
+`md` is the associated Markdown document (analysis/mockups for stories, description +
+architectural choices + work notes for tasks). `md_updated_at` is set by the
+server when the `md` changes. IDs are server-generated (prefix `e/s/t/a` +
+8 hex): **do not invent them**, always use the `id` returned by the POSTs or read from the GETs.
 
-## Fasi della storia (`phase`)
-Modellano il flusso PO→UX→architect→dev senza toccare lo `status` grezzo:
-- `analysis` — Product Owner: analisi in corso/da fare.
-- `ux` — servono mockup di flussi utente → UX Designer.
-- `design` — pronta per l'architect (decisioni architetturali + scomposizione in task).
-- `dev` — task creati e in lavorazione dai dev.
-- `done` — storia completata.
-Transizioni tipiche: `analysis → (ux) → design → dev → done`.
+## Story phases (`phase`)
+They model the PO→UX→architect→dev flow without touching the raw `status`:
+- `analysis` — Product Owner: analysis in progress/to be done.
+- `ux` — user-flow mockups are needed → UX Designer.
+- `design` — ready for the architect (architectural decisions + breakdown into tasks).
+- `dev` — tasks created and being worked on by the devs.
+- `done` — story completed.
+Typical transitions: `analysis → (ux) → design → dev → done`.
 
-## Nomi canonici degli agent (record Tabula)
-Un record `agent` per ogni subagent, identificato **per nome** (l'id è dinamico):
+## Canonical agent names (Tabula records)
+One `agent` record for each subagent, identified **by name** (the id is dynamic):
 
 | subagent | `name` Tabula |
 |---|---|
@@ -56,20 +56,20 @@ Un record `agent` per ogni subagent, identificato **per nome** (l'id è dinamico
 | tester | `tester` |
 | devops | `devops` |
 
-## Mappa tipo-task → agent
+## Task-type → agent map
 - UI / Angular → `frontend`
 - BE Python (FastAPI/Polars) → `be-python`
 - BE Java (Spring Boot) → `be-java`
-- cross-repo / slice end-to-end → `fullstack`
+- cross-repo / end-to-end slice → `fullstack`
 - code review → `reviewer`
 - test / QA / E2E → `tester`
-- preparazione ambiente / aggiornamento repo / avvio-riavvio stack Docker → `devops`
-- `product-owner`, `ux-designer` e `architect` lavorano sulle fasi della storia
-  (analysis/ux/design), di norma **senza task implementativi**: il PO crea/aggiorna
-  epiche e storie, l'UX produce mockup nell'md, l'architect crea i task per i dev.
+- environment preparation / repo update / Docker stack startup-restart → `devops`
+- `product-owner`, `ux-designer` and `architect` work on the story phases
+  (analysis/ux/design), normally **without implementation tasks**: the PO creates/updates
+  epics and stories, UX produces mockups in the md, the architect creates the tasks for the devs.
 
-## Ricette (PowerShell — ambiente Windows)
-Il server gira su Windows; `Invoke-RestMethod` fa il parsing JSON nativo (niente `jq`).
+## Recipes (PowerShell — Windows environment)
+The server runs on Windows; `Invoke-RestMethod` does native JSON parsing (no `jq`).
 
 ```powershell
 $base = if ($env:TABULA_API_URL) { $env:TABULA_API_URL } else { 'http://localhost:9955' }
@@ -79,7 +79,7 @@ function Tab($method, $path, $bodyObj=$null) {
   Invoke-RestMethod @args
 }
 
-# Trova-o-registra un agent per nome → ritorna l'id
+# Find-or-register an agent by name → returns the id
 function Get-AgentId($name) {
   $a = (Tab GET '/agents') | Where-Object { $_.name -eq $name } | Select-Object -First 1
   if (-not $a) { $a = Tab POST '/agents' @{ name = $name; status = 'idle'; current_task = 'Inattivo'; tokens = 0 } }
@@ -87,21 +87,21 @@ function Get-AgentId($name) {
 }
 ```
 
-### Ciclo di vita di un agent dev/reviewer/tester
+### Life cycle of a dev/reviewer/tester agent
 ```powershell
-$me = Get-AgentId 'frontend'                                  # il tuo nome canonico
-# avvio
+$me = Get-AgentId 'frontend'                                  # your canonical name
+# start
 Tab PATCH "/agents/$me" @{ status = 'active'; current_task = 'Form di login (s12)' }
 Tab PATCH "/tasks/$taskId" @{ status = 'progress'; agent_id = $me }
-# ... lavoro reale ...
-# fine OK
+# ... real work ...
+# successful end
 Tab PATCH "/tasks/$taskId" @{ status = 'done' }
 Tab PATCH "/agents/$me" @{ status = 'idle'; current_task = 'Inattivo' }
 ```
-In caso di errore/blocco: **lascia il task in `progress`** (non metterlo `done`),
-riporta il motivo, e riporta l'agent a `idle` solo se hai davvero smesso di lavorarci.
+On error/block: **leave the task in `progress`** (do not set it to `done`),
+report the reason, and return the agent to `idle` only if you have really stopped working on it.
 
-### Trova-o-crea epica (match per titolo, non esiste ricerca server-side)
+### Find-or-create epic (match by title, no server-side search exists)
 ```powershell
 $epicTitle = 'NAU-177 Sistema di autenticazione'
 $epic = (Tab GET '/epics') | Where-Object { $_.title -eq $epicTitle } | Select-Object -First 1
@@ -109,38 +109,38 @@ if (-not $epic) { $epic = Tab POST '/epics' @{ title = $epicTitle; desc = '...';
 $epicId = $epic.id
 ```
 
-### Trova-o-crea storia sotto l'epica (con fase e md) — lo fa il Product Owner
+### Find-or-create story under the epic (with phase and md) — done by the Product Owner
 ```powershell
-$storyTitle = 'Pagina di login'
+$storyTitle = 'Login page'
 $story = (Tab GET "/stories?epic_id=$epicId") | Where-Object { $_.title -eq $storyTitle } | Select-Object -First 1
 if (-not $story) {
-  $story = Tab POST '/stories' @{ title = $storyTitle; desc = '...'; status = 'todo'; phase = 'analysis'; epic_id = $epicId; md = '# Analisi...' }
+  $story = Tab POST '/stories' @{ title = $storyTitle; desc = '...'; status = 'todo'; phase = 'analysis'; epic_id = $epicId; md = '# Analysis...' }
 }
 $storyId = $story.id
-# aggiornare analisi e fase:
-Tab PATCH "/stories/$storyId" @{ md = '# Analisi aggiornata...'; phase = 'design' }
+# update analysis and phase:
+Tab PATCH "/stories/$storyId" @{ md = '# Updated analysis...'; phase = 'design' }
 ```
 
-### Creare un task assegnato con md (descrizione + scelte architetturali) — lo fa l'architect
+### Create an assigned task with md (description + architectural choices) — done by the architect
 ```powershell
-$agentId = Get-AgentId 'be-python'        # mappa tipo-task → agent
-Tab POST '/tasks' @{ title = 'Endpoint POST /datasets'; status = 'todo'; story_id = $storyId; agent_id = $agentId; md = "## Lavoro\n...\n## Scelte architetturali\n..." }
-# l'architect porta la storia in fase dev:
+$agentId = Get-AgentId 'be-python'        # task-type → agent map
+Tab POST '/tasks' @{ title = 'Endpoint POST /datasets'; status = 'todo'; story_id = $storyId; agent_id = $agentId; md = "## Work\n...\n## Architectural choices\n..." }
+# the architect moves the story to the dev phase:
 Tab PATCH "/stories/$storyId" @{ phase = 'dev'; status = 'progress' }
 ```
 
-### Aggiornare l'md (qualsiasi entità)
+### Update the md (any entity)
 ```powershell
-# leggere l'md corrente e fare append (i dev a fine lavoro):
+# read the current md and append (the devs at the end of work):
 $t = Tab GET "/tasks/$taskId"
-$nuovo = $t.md + "`n`n## Lavoro svolto`n- file X, scelta Y, nota Z"
-Tab PATCH "/tasks/$taskId" @{ md = $nuovo }   # md_updated_at viene impostato dal server
+$new = $t.md + "`n`n## Work done`n- file X, choice Y, note Z"
+Tab PATCH "/tasks/$taskId" @{ md = $new }   # md_updated_at is set by the server
 ```
 
-### Cascata di stato (orchestratore, opzionale)
-- Quando l'architect crea i task: porta la storia a `phase=dev`, `status=progress`.
-- Quando **tutti** i task di una storia sono `done`: porta la storia a `status=done` e `phase=done`.
-- Quando **tutte** le storie di un'epica sono `done`: porta l'epica a `done`.
+### State cascade (orchestrator, optional)
+- When the architect creates the tasks: move the story to `phase=dev`, `status=progress`.
+- When **all** the tasks of a story are `done`: move the story to `status=done` and `phase=done`.
+- When **all** the stories of an epic are `done`: move the epic to `done`.
 ```powershell
 $tasks = Tab GET "/tasks?story_id=$storyId"
 if ($tasks.Count -gt 0 -and ($tasks | Where-Object { $_.status -ne 'done' }).Count -eq 0) {
@@ -148,8 +148,8 @@ if ($tasks.Count -gt 0 -and ($tasks | Where-Object { $_.status -ne 'done' }).Cou
 }
 ```
 
-## Note operative
-- Per **rilasciare** un task da un agent: il PATCH ignora i campi `null`, quindi non puoi azzerare `agent_id` via PATCH — riassegnalo a un altro agent o lascialo invariato.
-- `tokens`: lo popola **l'orchestratore** (non i subagent, che non conoscono il proprio consumo) con una **stima cumulativa** alla chiusura di ogni subagent — `GET` valore corrente, somma la stima, `PATCH`. È best-effort e approssimativo; se la board non risponde, lascialo invariato.
-- Stati: usa **esattamente** i valori enum sopra, altrimenti il server risponde 422.
-- Esegui le PATCH di stato all'inizio e alla fine del lavoro, non a ogni micro-step (evita rumore sulla board).
+## Operational notes
+- To **release** a task from an agent: the PATCH ignores `null` fields, so you cannot clear `agent_id` via PATCH — reassign it to another agent or leave it unchanged.
+- `tokens`: it is populated by **the orchestrator** (not the subagents, which do not know their own consumption) with a **cumulative estimate** at the close of each subagent — `GET` the current value, add the estimate, `PATCH`. It is best-effort and approximate; if the board does not respond, leave it unchanged.
+- States: use **exactly** the enum values above, otherwise the server responds 422.
+- Run the state PATCHes at the start and end of the work, not at every micro-step (avoid noise on the board).
