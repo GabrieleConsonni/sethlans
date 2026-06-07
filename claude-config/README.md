@@ -55,6 +55,18 @@ chmod +x install.sh
 
 After installation, **restart Claude Code** and type `/sethlans <request>`.
 
+## Source of truth & keeping in sync
+
+This repo is the **source of truth** for the command, subagents, and protocol. The
+copies under `~/.claude/` are deployments, not originals.
+
+- **To change** the command/agents/protocol: edit them here under `claude-config/`,
+  commit, then run the installer (`install.ps1 -Force` / `install.sh --force`) to deploy
+  the change to `~/.claude/`. Do **not** hand-edit the files in `~/.claude/` — those edits
+  would be overwritten on the next install and would not be tracked.
+- Treat the deploy as one-directional: **repo → `~/.claude/`**. Restart Claude Code after
+  an install so it reloads the updated command and subagents.
+
 ## Prerequisites for the full flow
 
 - The **Tabula** board running (see [docs/tabula.md](../docs/tabula.md)).
