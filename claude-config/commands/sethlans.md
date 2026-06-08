@@ -21,6 +21,16 @@ Execute in order, stopping only if a step is truly blocking:
 - `GET $base/state` (default `http://localhost:9955`, override `TABULA_API_URL`).
 - If it does NOT respond: warn that the board is not started (backend: `pip install -r requirements.txt` → `alembic upgrade head` → `python tabula_server.py` in the `backend/` folder of the Tabula repo, or docker-compose) and **stop**. The real development work remains possible without the board (best-effort).
 
+## 1-bis. Project profile check (auto-detect)
+- Find-or-create the `project` for the current workspace (match by `name`) and read its profile.
+- If the **profile is missing** (`project.md` empty) **or stale** (`md_updated_at` clearly older
+  than the repo's `CLAUDE.md`/pack), tell the user the project has not been pre-trained and
+  **suggest `/sethlans-onboard`** (it mirrors `CLAUDE.md` into the profile and builds the
+  per-role knowledge cards). This is a **suggestion, not a gate**: proceed with the flow even
+  without a profile (best-effort).
+- When a profile/cards exist, each spawned subagent should **read the profile + its own card**
+  at the start of its task (see the consumption rule in `~/.claude/tabula-protocol.md`).
+
 ## 2. Product Owner — ingest & analysis (subagent `product-owner`)
 - Spawn **product-owner** passing `$ARGUMENTS` and `TABULA_API_URL`. The PO detects the source:
   - **Jira key** → reads the issue + Confluence analysis (MCP Atlassian), imports the epic/story into Tabula with `md` (analysis/criteria) and `phase`;
@@ -28,13 +38,14 @@ Execute in order, stopping only if a step is truly blocking:
   - **free-form description** → drafts the analysis before proceeding, writes it into `story.md`.
 - The PO **finds-or-creates** the epic + story, sets `phase` (`analysis`/`ux`/`design`) and **returns**: `story_id`, `epic_id`, and whether there are **UX flows to validate**.
 
-## 3. UX Designer — mockups (subagent `ux-designer`, if UX flows are needed)
-- If the PO signals UX flows (story in `phase=ux`): spawn **ux-designer** with `story_id` + flows.
-- The UX produces **HTML/CSS** mockups in the `md` (```mockup``` block) and moves the story to `phase=design`.
+## 3. UX Designer — mockups + USER APPROVAL GATE (subagent `ux-designer`, if UX flows are needed)
+- If the PO signals UX flows (story in `phase=ux`): spawn **ux-designer** with `story_id` + flows. The UX produces **HTML/CSS** mockups in the `md` (```mockup``` block), mirroring the **existing screens** (homogeneity: a variant of an existing screen keeps that screen's layout with fewer/more fields).
+- **APPROVAL GATE (mandatory): do NOT proceed to the architect until the user has approved the mockups.** Present the mockup preview to the user (surface the key screens in your message, not just a board link) and **wait for explicit approval**. The story stays in `phase=ux` until then; on approval it moves to `phase=design`. If the user requests changes, loop back to the ux-designer. This gate exists because skipping it has produced UIs misaligned with the app.
 
-## 4. Architect — architecture & tasks (subagent `architect`)
+## 4. Architect — architecture, CONTRACT & tasks (subagent `architect`)
 - Spawn **architect** with `story_id` (story in `phase=design`).
 - The architect decides the **architectural solutions**, creates the tasks (`POST /tasks`) with `md` = **work description + architectural decisions** and `agent_id` per type, moves the story to `phase=dev` + `status=progress`, and **returns** the task list (`id`, `agent_id`, target subagent).
+- **Contract-first for cross-layer stories (mandatory).** If the story spans FE+BE (or service↔service), the architect must define the **complete API contract** in the story `md` (`## API Contract`) BEFORE the dev tasks: every endpoint the consumer needs — **list AND detail-by-id**, plus action endpoints (test/discovery/validate…) — with request/response shapes and error cases, cross-checked against the screens/mockups. Both the BE and FE task `md` reference that one contract. **Prefer a single `fullstack` task** for a tight FE+BE slice so one agent owns the contract end-to-end; split into separate `be-*`+`frontend` only when truly parallelizable.
 
 ## 4-bis. Environment preparation (subagent `devops`, on-demand)
 - When the story requires a **running ecosystem** (local dev running, or E2E tests on the **local stack**), spawn **devops** with `TABULA_API_URL` (and `task_id` if you created a setup task) to: (a) **update the involved repos** (`git pull --ff-only`, never destructive) and (b) **ensure infra + services** on Docker. Repos, infra containers, compose, ports and **startup order** are in the project's `CLAUDE.md`: `devops` discovers them from there.
@@ -43,11 +54,14 @@ Execute in order, stopping only if a step is truly blocking:
 
 ## 5. Dev dispatch
 - For each task spawn the target subagent (`frontend`/`be-python`/`be-java`/`fullstack`) with `task_id`, agent name, `TABULA_API_URL` and the operational description (which is in the task's `md`).
-- Each dev: protocol (active+progress → done+idle) and **append to the task's `md`** with what was done. Parallelize independent tasks; serialize those with dependencies (BE contracts before FE).
+- Each dev: protocol (active+progress → done+idle) and **append to the task's `md`** with what was done. Parallelize independent tasks; serialize those with dependencies (**BE exposes the contract before FE integrates**).
+- **Each dev runs only the FAST unit tests** for what they touched (excluding the slow integration suites — those are the tester's) before marking the task `done`. Do not dispatch a monolithic full suite at the dev stage.
+- **FE↔BE: validate against the real backend.** A FE task wired only to mocks is **not** `done`: once the BE endpoints are up, the FE must be re-pointed to the real contract and verified end-to-end before closing.
 
 ## 6. Review and test
 - The architect **always** creates a `tester` task (and, if the diff is non-trivial, a `reviewer` task) for stories with code: those tasks exist, so this step is **not optional**.
-- After the linked dev tasks are `done`, spawn `tester` (and `reviewer`) with their respective `task_id`, agent name and `TABULA_API_URL`. The acceptance criteria written by the architect are already in the task's `md`.
+- After the linked dev tasks are `done` (devs already ran the fast unit tests), spawn `tester` (and `reviewer`) with their respective `task_id`, agent name and `TABULA_API_URL`. The acceptance criteria written by the architect are already in the task's `md`.
+- **Test split.** The `tester` covers the **integration suites (the slow ones the devs skipped, e.g. `*IntegrationTest`/Testcontainers/DB-backed) + E2E/UI + API acceptance** — it does NOT re-run the fast unit suites. The tester is meant to work **in parallel with the user's own functional/E2E tests**, so keep its scope/evidence self-contained.
 - If for a story with code you do **not** find a `tester` task (the architect omitted it), spawn it anyway on the story's acceptance criteria: do not close the story without a QA pass.
 - **Test environment and browser tab.** Before spawning the `tester` for UI flows, determine which environment to test on and pass it as the **base URL** in the prompt/task `md`:
   - In the **full flow** the default environment is the **local stack** you (re)built.

@@ -25,7 +25,9 @@ copy_safe() {
   echo "  copied: $to"
 }
 
-copy_safe "$SRC/commands/sethlans.md" "$DEST/commands/sethlans.md"
+for f in "$SRC"/commands/*.md; do
+  copy_safe "$f" "$DEST/commands/$(basename "$f")"
+done
 copy_safe "$SRC/tabula-protocol.md"   "$DEST/tabula-protocol.md"
 for f in "$SRC"/agents/*.md; do
   copy_safe "$f" "$DEST/agents/$(basename "$f")"

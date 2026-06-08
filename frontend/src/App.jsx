@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeft, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { BookOpen, ChevronLeft, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import Agenda from "./components/Agenda.jsx";
 import StoryPage from "./components/StoryPage.jsx";
 import ProjectSwitcher from "./components/ProjectSwitcher.jsx";
+import KnowledgePanel from "./components/KnowledgePanel.jsx";
 import * as api from "./api.js";
 
-const EMPTY = { projects: [], epics: [], stories: [], tasks: [], agents: [] };
+const EMPTY = { projects: [], epics: [], stories: [], tasks: [], agents: [], knowledge: [] };
 const POLL_MS = 4000;
 const PROJECT_KEY = "tabula-project-id";
 
 export default function App() {
-  const [page, setPage] = useState("agenda"); // 'agenda' | 'story'
+  const [page, setPage] = useState("agenda"); // 'agenda' | 'story' | 'knowledge'
   const [state, setState] = useState(EMPTY);
   const [selectedProject, setSelectedProject] = useState(() => {
     try {
@@ -122,9 +123,18 @@ export default function App() {
             />
           </div>
 
-          {page === "story" && (
+          {page !== "agenda" && (
             <button className="back-btn" onClick={() => setPage("agenda")}>
               <ChevronLeft size={16} /> Agenda
+            </button>
+          )}
+          {page !== "knowledge" && (
+            <button
+              className="back-btn"
+              onClick={() => setPage("knowledge")}
+              title="Profilo progetto & knowledge card"
+            >
+              <BookOpen size={15} /> Knowledge
             </button>
           )}
           <button className="reset-btn" onClick={reload} title="Aggiorna ora">
@@ -141,7 +151,7 @@ export default function App() {
           </div>
         )}
 
-        {page === "agenda" ? (
+        {page === "agenda" && (
           <Agenda
             state={state}
             reload={reload}
@@ -152,7 +162,8 @@ export default function App() {
             drag={drag}
             setDrag={setDrag}
           />
-        ) : (
+        )}
+        {page === "story" && (
           <StoryPage
             state={state}
             reload={reload}
@@ -160,6 +171,9 @@ export default function App() {
             drag={drag}
             setDrag={setDrag}
           />
+        )}
+        {page === "knowledge" && (
+          <KnowledgePanel state={state} selectedProject={selectedProject} />
         )}
       </main>
     </div>

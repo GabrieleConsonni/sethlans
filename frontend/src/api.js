@@ -69,3 +69,4 @@ export const epics = resource("epics");
 export const stories = resource("stories");
 export const tasks = resource("tasks");
 export const agents = resource("agents");
+export const knowledge = resource("knowledge");

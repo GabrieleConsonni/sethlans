@@ -30,12 +30,16 @@ from sqlalchemy.orm import Session
 
 from db import SessionLocal
 from models import (
+    KIND_KNOWLEDGE,
     PHASE_STORY,
+    ROLE_KNOWLEDGE,
+    SOURCE_KNOWLEDGE,
     STATUS_AGENT,
     STATUS_WORK,
     TYPE_PROJECT,
     Agent,
     Epic,
+    Knowledge,
     Project,
     Story,
     Task,
@@ -49,11 +53,31 @@ class ProjectIn(BaseModel):
     name: str
     type: str = "internal"
     jira_key: str = ""
+    md: str = ""
+    config: dict = {}
 
 class ProjectPatch(BaseModel):
     name: Optional[str] = None
     type: Optional[str] = None
     jira_key: Optional[str] = None
+    md: Optional[str] = None
+    config: Optional[dict] = None
+
+
+class KnowledgeIn(BaseModel):
+    project_id: str
+    title: str
+    role: str = "general"
+    kind: str = "kb"
+    source: str = "manual"
+    md: str = ""
+
+class KnowledgePatch(BaseModel):
+    title: Optional[str] = None
+    role: Optional[str] = None
+    kind: Optional[str] = None
+    source: Optional[str] = None
+    md: Optional[str] = None
 
 
 class EpicIn(BaseModel):
@@ -174,6 +198,8 @@ def create_project(body: ProjectIn, db: Session = Depends(get_db)):
     validate_status(body.type, TYPE_PROJECT, field="type")
     project = Project(
         id=new_id("p"), name=body.name, type=body.type, jira_key=body.jira_key,
+        md=body.md, config=body.config or {},
+        md_updated_at=_now() if body.md else None,
     )
     db.add(project); db.commit()
     return project.to_dict()
@@ -187,6 +213,7 @@ def update_project(project_id: str, body: ProjectPatch, db: Session = Depends(ge
     validate_status(body.type, TYPE_PROJECT, field="type")
     project = fetch_or_404(db, Project, project_id)
     data = {k: v for k, v in body.model_dump().items() if v is not None}
+    apply_md_timestamp(project, data)
     for k, v in data.items():
         setattr(project, k, v)
     db.commit()
@@ -385,16 +412,68 @@ def delete_agent(agent_id: str, db: Session = Depends(get_db)):
     return {"deleted": agent_id}
 
 
+# ---------- KNOWLEDGE ----------
+
+@app.get("/knowledge")
+def list_knowledge(project_id: Optional[str] = None, role: Optional[str] = None,
+                   kind: Optional[str] = None, db: Session = Depends(get_db)):
+    q = db.query(Knowledge)
+    if project_id:
+        q = q.filter(Knowledge.project_id == project_id)
+    if role:
+        q = q.filter(Knowledge.role == role)
+    if kind:
+        q = q.filter(Knowledge.kind == kind)
+    return [k.to_dict() for k in q.all()]
+
+@app.post("/knowledge", status_code=201)
+def create_knowledge(body: KnowledgeIn, db: Session = Depends(get_db)):
+    validate_status(body.role, ROLE_KNOWLEDGE, field="role")
+    validate_status(body.kind, KIND_KNOWLEDGE, field="kind")
+    validate_status(body.source, SOURCE_KNOWLEDGE, field="source")
+    fetch_or_404(db, Project, body.project_id)
+    card = Knowledge(
+        id=new_id("k"), project_id=body.project_id, title=body.title,
+        role=body.role, kind=body.kind, source=body.source, md=body.md,
+        md_updated_at=_now() if body.md else None,
+    )
+    db.add(card); db.commit()
+    return card.to_dict()
+
+@app.get("/knowledge/{knowledge_id}")
+def get_knowledge(knowledge_id: str, db: Session = Depends(get_db)):
+    return fetch_or_404(db, Knowledge, knowledge_id).to_dict()
+
+@app.patch("/knowledge/{knowledge_id}")
+def update_knowledge(knowledge_id: str, body: KnowledgePatch, db: Session = Depends(get_db)):
+    validate_status(body.role, ROLE_KNOWLEDGE, field="role")
+    validate_status(body.kind, KIND_KNOWLEDGE, field="kind")
+    validate_status(body.source, SOURCE_KNOWLEDGE, field="source")
+    card = fetch_or_404(db, Knowledge, knowledge_id)
+    data = {k: v for k, v in body.model_dump().items() if v is not None}
+    apply_md_timestamp(card, data)
+    for k, v in data.items():
+        setattr(card, k, v)
+    db.commit()
+    return card.to_dict()
+
+@app.delete("/knowledge/{knowledge_id}")
+def delete_knowledge(knowledge_id: str, db: Session = Depends(get_db)):
+    db.delete(fetch_or_404(db, Knowledge, knowledge_id)); db.commit()
+    return {"deleted": knowledge_id}
+
+
 # ---------- SNAPSHOT ----------
 
 @app.get("/state")
 def full_state(db: Session = Depends(get_db)):
     return {
-        "projects": [p.to_dict() for p in db.query(Project).all()],
-        "epics":    [e.to_dict() for e in db.query(Epic).all()],
-        "stories":  [s.to_dict() for s in db.query(Story).all()],
-        "tasks":    [t.to_dict() for t in db.query(Task).all()],
-        "agents":   [a.to_dict() for a in db.query(Agent).all()],
+        "projects":  [p.to_dict() for p in db.query(Project).all()],
+        "epics":     [e.to_dict() for e in db.query(Epic).all()],
+        "stories":   [s.to_dict() for s in db.query(Story).all()],
+        "tasks":     [t.to_dict() for t in db.query(Task).all()],
+        "agents":    [a.to_dict() for a in db.query(Agent).all()],
+        "knowledge": [k.to_dict() for k in db.query(Knowledge).all()],
     }
 
 
