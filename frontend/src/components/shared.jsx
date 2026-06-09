@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { READONLY } from "../config.js";
 
 export const COLS = [
   { key: "todo", label: "To Do" },
@@ -215,6 +216,8 @@ export function MdView({ md }) {
 export function MdEditor({ value, onSave }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(value || "");
+  // In sola lettura non si modifica il documento: si mostra solo la vista.
+  if (READONLY) return <MdView md={value} />;
   if (!editing) {
     return (
       <div>

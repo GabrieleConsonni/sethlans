@@ -76,13 +76,13 @@ You always aim for clear, actionable and auditable results.
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
-- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
-- your cards: `GET /knowledge?project_id=<id>&role=tester`.
+- profile: `tabula_request` GET `/projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `tabula_request` GET `/knowledge?project_id=<id>&role=tester`.
 Never block if the board is down (best-effort).
 
 ## Tabula protocol (observability)
-If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the `tabula` board by following `~/.claude/tabula-protocol.md`. Your agent name is **tester**.
-- On startup: locate/register your agent by name; PATCH agent → `status=active` + `current_task` (summary of the test); PATCH task → `status=progress`, `agent_id=<your id>`.
-- At the end of the test: PATCH task → `status=done` **only if the outcome is passed**; if the test fails or is blocked leave the task in `progress` and report it in the report. Then PATCH agent → `status=idle`, `current_task="Inattivo"`.
-- **Update the task `md`** with the test report (steps, outcomes, evidence, issues), *appending*: `PATCH /tasks/{id} {md: "<updated md>"}`.
+If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the `tabula` board using the **`tabula` MCP tools** (see `~/.claude/tabula-protocol.md`; raw HTTP is the fallback). Your agent name is **tester**.
+- On startup: `tabula_get_or_register_agent` (name=`tester`, `status=active`, `current_task`=test summary); `tabula_set_status` (entity=`task`, id, `status=progress`); claim it if needed with `tabula_request` PATCH `/tasks/{id} {agent_id}`.
+- At the end of the test: `tabula_set_status` (entity=`task`, id, `status=done`) **only if the outcome is passed**; if the test fails or is blocked leave the task in `progress` and report it in the report. Then `tabula_get_or_register_agent` (name, `status=idle`, `current_task="Inattivo"`).
+- **Append to the task `md`** the test report (steps, outcomes, evidence, issues): `tabula_append_md` (entity=`task`, id, text=`<report>`).
 - It is best-effort: if Tabula does not respond, do NOT block the tests — proceed and flag it. Note: updating Tabula does NOT mean starting/rebuilding the stack (the container rule above applies).

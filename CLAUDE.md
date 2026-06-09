@@ -82,6 +82,7 @@ npm run dev                                          # :5173
 | `TABULA_DB_URL`  | backend     | `postgresql+psycopg2://postgres:password@localhost:5432/tabula` | Postgres connection |
 | `TABULA_PORT`    | backend     | `9955`  | API port |
 | `VITE_API_URL`   | frontend    | `http://localhost:9955` | backend base URL (also at runtime, from the header field) |
+| `VITE_READONLY`  | frontend    | `true`  | read-only UI: in the first version the board is editable only by AI agents (via HTTP), never by the user from the UI. Set `false` to re-enable in-UI editing. |
 
 ## API & data model
 
@@ -127,6 +128,9 @@ first tests are introduced.
 
 The PO→UX→architect→dev flow on this board is driven by the `/sethlans` command and the subagents in
 [`claude-config/`](claude-config/README.md). The integration contract with the board (base URL,
-recipes, enums, task→agent map) is in [`claude-config/tabula-protocol.md`](claude-config/tabula-protocol.md):
-it is the **single source of truth** for calls to the board. Updating Tabula is **best-effort and never
-blocking** — if the board does not respond, development work continues anyway.
+recipes, enums, task→agent map) is in [`.claude-plugin/tabula-protocol.md`](.claude-plugin/tabula-protocol.md):
+it is the **single source of truth** for calls to the board. The preferred integration is the **`tabula`
+MCP server** (`.claude-plugin/mcp/server.mjs`, a zero-dependency stdio wrapper over the REST API, wired in
+`plugin.json`), which exposes typed, enum-validated tools and works cross-platform; the raw HTTP recipes are
+a fallback. Updating Tabula is **best-effort and never blocking** — if the board does not respond,
+development work continues anyway.

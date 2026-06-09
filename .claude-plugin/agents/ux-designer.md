@@ -48,14 +48,14 @@ The mockups exist to be **validated by the user before any implementation**. You
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
-- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
-- your cards: `GET /knowledge?project_id=<id>&role=ux`.
+- profile: `tabula_request` GET `/projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `tabula_request` GET `/knowledge?project_id=<id>&role=ux`.
 Never block if the board is down (best-effort).
 
 ## Tabula (follow `~/.claude/tabula-protocol.md`)
-- Your agent name is **ux-designer**: on startup `status=active` + `current_task`; at the end `status=idle`.
-- Update the `md` of the story/task with the mockups (`PATCH /stories/{id} {md: ...}` or on the task).
-- Move the story from `phase=ux` to `phase=design` (`PATCH /stories/{id} {phase:'design'}`) **only after the user has approved the mockups** (see the approval gate above), so the architect can take it over.
+- Your agent name is **ux-designer**: `tabula_get_or_register_agent` on startup (`status=active` + `current_task`) and at the end (`status=idle`).
+- Update the `md` of the story/task with the mockups via `tabula_append_md` (entity=`story` or `task`, id, text) — or `tabula_upsert_story` with `md` for a full rewrite.
+- Move the story from `phase=ux` to `phase=design` with `tabula_set_status` (entity=`story`, id, `phase=design`) **only after the user has approved the mockups** (see the approval gate above), so the architect can take it over.
 - Best-effort: if Tabula does not respond, deliver the mockups anyway (in the result) and flag it.
 
 ## Constraints

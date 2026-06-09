@@ -1,6 +1,6 @@
 {
   "name": "sethlans",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "PO→UX→architect→dev orchestration flow with Tabula board visualization",
   "author": "gifsonick",
   "skills": [
@@ -8,5 +8,14 @@
     "skills/sethlans-onboard.md",
     "skills/sethlans-setup.md"
   ],
-  "agents": ["agents/"]
+  "agents": ["agents/"],
+  "mcpServers": {
+    "tabula": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs"],
+      "env": {
+        "TABULA_API_URL": "${TABULA_API_URL}"
+      }
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { FolderKanban, Plus, ChevronDown, Check } from "lucide-react";
 import * as api from "../api.js";
+import { READONLY } from "../config.js";
 
 // Selettore di progetto nell'header: combo per scegliere il progetto attivo
 // + form per crearne uno nuovo (Jira o interno).
@@ -74,53 +75,54 @@ export default function ProjectSwitcher({ projects, selectedProject, onSelect, r
             ))}
           </div>
 
-          {adding ? (
-            <div className="add-form" style={{ margin: "8px" }}>
-              <input
-                autoFocus
-                className="input"
-                placeholder="Nome progetto"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                onKeyDown={(e) => e.key === "Enter" && create()}
-              />
-              <select
-                className="input"
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-              >
-                <option value="jira">Progetto Jira</option>
-                <option value="internal">Progetto interno</option>
-              </select>
-              {form.type === "jira" && (
+          {!READONLY &&
+            (adding ? (
+              <div className="add-form" style={{ margin: "8px" }}>
                 <input
+                  autoFocus
                   className="input"
-                  placeholder="Chiave Jira (es. ABC)"
-                  value={form.jira_key}
-                  onChange={(e) => setForm((f) => ({ ...f, jira_key: e.target.value }))}
+                  placeholder="Nome progetto"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   onKeyDown={(e) => e.key === "Enter" && create()}
                 />
-              )}
-              <div className="form-row">
-                <button className="btn-primary" onClick={create}>
-                  Crea
-                </button>
-                <button
-                  className="btn-ghost"
-                  onClick={() => {
-                    setAdding(false);
-                    setForm({ name: "", type: "jira", jira_key: "" });
-                  }}
+                <select
+                  className="input"
+                  value={form.type}
+                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
                 >
-                  Annulla
-                </button>
+                  <option value="jira">Progetto Jira</option>
+                  <option value="internal">Progetto interno</option>
+                </select>
+                {form.type === "jira" && (
+                  <input
+                    className="input"
+                    placeholder="Chiave Jira (es. ABC)"
+                    value={form.jira_key}
+                    onChange={(e) => setForm((f) => ({ ...f, jira_key: e.target.value }))}
+                    onKeyDown={(e) => e.key === "Enter" && create()}
+                  />
+                )}
+                <div className="form-row">
+                  <button className="btn-primary" onClick={create}>
+                    Crea
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    onClick={() => {
+                      setAdding(false);
+                      setForm({ name: "", type: "jira", jira_key: "" });
+                    }}
+                  >
+                    Annulla
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <button className="project-add" onClick={() => setAdding(true)}>
-              <Plus size={14} /> Nuovo progetto
-            </button>
-          )}
+            ) : (
+              <button className="project-add" onClick={() => setAdding(true)}>
+                <Plus size={14} /> Nuovo progetto
+              </button>
+            ))}
         </div>
       )}
     </div>

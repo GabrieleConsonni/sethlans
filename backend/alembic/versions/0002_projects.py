@@ -10,7 +10,7 @@ Create Date: 2026-06-01
 from alembic import op
 import sqlalchemy as sa
 
-from db import SCHEMA
+from db import IS_POSTGRES, SCHEMA
 
 revision = "0002_projects"
 down_revision = "0001_init"
@@ -55,21 +55,39 @@ def upgrade() -> None:
     epics = sa.table("epics", sa.column("project_id", sa.String), schema=SCHEMA)
     op.execute(epics.update().values(project_id=_DEFAULT_ID))
 
-    # 4) ora la colonna può diventare NOT NULL + vincolo FK
-    op.alter_column("epics", "project_id", nullable=False, schema=SCHEMA)
-    op.create_foreign_key(
-        "fk_epics_project_id",
-        "epics",
-        "projects",
-        ["project_id"],
-        ["id"],
-        source_schema=SCHEMA,
-        referent_schema=SCHEMA,
-        ondelete="CASCADE",
-    )
+    # 4) ora la colonna può diventare NOT NULL + vincolo FK.
+    #    SQLite non supporta ALTER per NOT NULL/FK: si usa il batch mode (ricrea
+    #    la tabella). Su Postgres l'ALTER nativo è sufficiente.
+    if IS_POSTGRES:
+        op.alter_column("epics", "project_id", nullable=False, schema=SCHEMA)
+        op.create_foreign_key(
+            "fk_epics_project_id",
+            "epics",
+            "projects",
+            ["project_id"],
+            ["id"],
+            source_schema=SCHEMA,
+            referent_schema=SCHEMA,
+            ondelete="CASCADE",
+        )
+    else:
+        with op.batch_alter_table("epics", schema=SCHEMA) as batch:
+            batch.alter_column("project_id", nullable=False)
+            batch.create_foreign_key(
+                "fk_epics_project_id",
+                "projects",
+                ["project_id"],
+                ["id"],
+                ondelete="CASCADE",
+            )
 
 
 def downgrade() -> None:
-    op.drop_constraint("fk_epics_project_id", "epics", schema=SCHEMA, type_="foreignkey")
-    op.drop_column("epics", "project_id", schema=SCHEMA)
+    if IS_POSTGRES:
+        op.drop_constraint("fk_epics_project_id", "epics", schema=SCHEMA, type_="foreignkey")
+        op.drop_column("epics", "project_id", schema=SCHEMA)
+    else:
+        with op.batch_alter_table("epics", schema=SCHEMA) as batch:
+            batch.drop_constraint("fk_epics_project_id", type_="foreignkey")
+            batch.drop_column("project_id")
     op.drop_table("projects", schema=SCHEMA)

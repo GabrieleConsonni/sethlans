@@ -36,18 +36,18 @@ Whenever a story spans **more than one layer/repo** (e.g. a FE that consumes a B
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
-- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
-- your cards: `GET /knowledge?project_id=<id>&role=architect`.
+- profile: `tabula_request` GET `/projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `tabula_request` GET `/knowledge?project_id=<id>&role=architect`.
 Never block if the board is down (best-effort).
 
 ## Tabula protocol (board structure)
-When the orchestrator starts a flow on an epic/story, reflect the breakdown on the `tabula` board by following `~/.claude/tabula-protocol.md`. Your agent name is **architect**.
+When the orchestrator starts a flow on an epic/story, reflect the breakdown on the `tabula` board using the **`tabula` MCP tools** (see `~/.claude/tabula-protocol.md`; raw HTTP is the fallback). Your agent name is **architect**.
 - You work on an **already existing story** (id provided by the orchestrator, typically in `phase=design` after Product Owner and any UX). Exceptionally, if it is missing, find-or-create the epic/story by title.
-- You decide the **architectural decisions** and break them down into tasks. For each task: `POST /tasks` with `story_id`, `title`, `status=todo`, `agent_id` **resolved from the task type** (task-type→agent map of the protocol, `Get-AgentId` by name: frontend / be-python / be-java / fullstack / reviewer / tester) and **`md` = description of the work to be done + architectural decisions adopted**. This `md` is the contract that the dev will read and then update at the end of the work.
+- You decide the **architectural decisions** and break them down into tasks. For each task: `tabula_create_task` with `story_id`, `title`, `status=todo`, `agent_name` **resolved from the task type** (task-type→agent map of the protocol: frontend / be-python / be-java / fullstack / reviewer / tester — the tool find-or-registers the agent) and **`md` = description of the work to be done + architectural decisions adopted**. This `md` is the contract that the dev will read and then update at the end of the work.
 - **Mandatory QA**: for every story that produces code (at least one `frontend`/`be-python`/`be-java`/`fullstack` task) **always** create at least one `tester` task — and, when the diff is non-trivial, also a `reviewer` task. These tasks are not optional: without them, the story cannot be completed. For the `tester` task:
   - `md` = **verifiable acceptance criteria** of the story (what must be true) + the flows/endpoints to cover. Scope the tester to **integration + E2E/UI + API acceptance** tests: the **fast unit tests are the dev's responsibility** (the dev runs them before marking their task `done`), so the tester does not re-run unit suites — it validates the end-to-end behavior, ideally **in parallel with the user's functional/E2E tests**.
   - It must be run **after** the dev tasks: declare the dependency in the `md` (e.g. "Depends on: t-xxxx, t-yyyy — run when the dev tasks are `done`") so the orchestrator serializes it in the queue.
-- Move the **story** to `phase=dev` and `status=progress` once the tasks are created.
+- Move the **story** to `phase=dev` and `status=progress` once the tasks are created: `tabula_set_status` (entity=`story`, id, `status=progress`, `phase=dev`).
 - **Report to the orchestrator** also the `tester`/`reviewer` tasks (with their dependencies), so the review/test step is actually triggered.
 - **Report to the orchestrator** the list of created tasks with `id`, `agent_id` and target subagent, so it can dispatch.
 - It is best-effort: if Tabula does not respond, do NOT block the production of the plan — deliver the plan anyway and flag it.

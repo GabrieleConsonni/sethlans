@@ -21,6 +21,10 @@ TABULA_DB_URL = os.environ.get(
 
 SCHEMA = "tabula"
 IS_POSTGRES = TABULA_DB_URL.startswith("postgresql")
+# Lo schema dedicato esiste solo su Postgres; su SQLite gli schemi non esistono,
+# quindi SCHEMA è None (le tabelle vivono direttamente nel database).
+if not IS_POSTGRES:
+    SCHEMA = None
 
 _connect_args = {} if IS_POSTGRES else {"check_same_thread": False}
 _base_engine = create_engine(TABULA_DB_URL, pool_pre_ping=True, connect_args=_connect_args)

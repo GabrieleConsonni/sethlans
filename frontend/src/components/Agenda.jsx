@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Layers, Plus, Pencil, Trash2, ChevronRight } from "lucide-react";
 import { COLS, colAccent, ColHeader, EditBox, PhaseBadge } from "./shared.jsx";
 import * as api from "../api.js";
+import { READONLY } from "../config.js";
 
 // Home: epiche a sinistra (sezioni verticali), storie dell'epica selezionata a destra.
 export default function Agenda({
@@ -109,8 +110,8 @@ function EpicPanel({ state, reload, selectedProject, selectedEpic, setSelectedEp
                 {items.map((e) => (
                   <div
                     key={e.id}
-                    draggable
-                    onDragStart={() => setDrag({ kind: "epic", id: e.id })}
+                    draggable={!READONLY}
+                    onDragStart={() => !READONLY && setDrag({ kind: "epic", id: e.id })}
                     onDragEnd={() => setDrag(null)}
                     onClick={() => setSelectedEpic(e.id)}
                     className={`epic-card${selectedEpic === e.id ? " selected" : ""}`}
@@ -126,26 +127,28 @@ function EpicPanel({ state, reload, selectedProject, selectedEpic, setSelectedEp
                       <>
                         <div className="card-top">
                           <div className="epic-title">{e.title}</div>
-                          <div className="card-actions">
-                            <button
-                              className="icon-btn"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                setEditing(e.id);
-                              }}
-                            >
-                              <Pencil size={12} />
-                            </button>
-                            <button
-                              className="icon-btn"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                del(e.id);
-                              }}
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
+                          {!READONLY && (
+                            <div className="card-actions">
+                              <button
+                                className="icon-btn"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  setEditing(e.id);
+                                }}
+                              >
+                                <Pencil size={12} />
+                              </button>
+                              <button
+                                className="icon-btn"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  del(e.id);
+                                }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                         {e.desc && <div className="card-desc">{e.desc}</div>}
                         <div className="epic-meta">
@@ -155,42 +158,43 @@ function EpicPanel({ state, reload, selectedProject, selectedEpic, setSelectedEp
                     )}
                   </div>
                 ))}
-                {adding === col.key ? (
-                  <div className="add-form">
-                    <input
-                      autoFocus
-                      placeholder="Titolo epica"
-                      value={form.title}
-                      onChange={(ev) => setForm((f) => ({ ...f, title: ev.target.value }))}
-                      onKeyDown={(ev) => ev.key === "Enter" && add(col.key)}
-                      className="input"
-                    />
-                    <input
-                      placeholder="Descrizione"
-                      value={form.desc}
-                      onChange={(ev) => setForm((f) => ({ ...f, desc: ev.target.value }))}
-                      className="input"
-                    />
-                    <div className="form-row">
-                      <button className="btn-primary" onClick={() => add(col.key)}>
-                        Aggiungi
-                      </button>
-                      <button
-                        className="btn-ghost"
-                        onClick={() => {
-                          setAdding(null);
-                          setForm({ title: "", desc: "" });
-                        }}
-                      >
-                        Annulla
-                      </button>
+                {!READONLY &&
+                  (adding === col.key ? (
+                    <div className="add-form">
+                      <input
+                        autoFocus
+                        placeholder="Titolo epica"
+                        value={form.title}
+                        onChange={(ev) => setForm((f) => ({ ...f, title: ev.target.value }))}
+                        onKeyDown={(ev) => ev.key === "Enter" && add(col.key)}
+                        className="input"
+                      />
+                      <input
+                        placeholder="Descrizione"
+                        value={form.desc}
+                        onChange={(ev) => setForm((f) => ({ ...f, desc: ev.target.value }))}
+                        className="input"
+                      />
+                      <div className="form-row">
+                        <button className="btn-primary" onClick={() => add(col.key)}>
+                          Aggiungi
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          onClick={() => {
+                            setAdding(null);
+                            setForm({ title: "", desc: "" });
+                          }}
+                        >
+                          Annulla
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button className="add-btn-sm" onClick={() => setAdding(col.key)}>
-                    <Plus size={13} /> Epica
-                  </button>
-                )}
+                  ) : (
+                    <button className="add-btn-sm" onClick={() => setAdding(col.key)}>
+                      <Plus size={13} /> Epica
+                    </button>
+                  ))}
               </div>
             </div>
           );
@@ -267,8 +271,8 @@ function StoryPanel({ state, reload, selectedEpic, openStory, drag, setDrag }) {
                 {items.map((it) => (
                   <div
                     key={it.id}
-                    draggable
-                    onDragStart={() => setDrag({ kind: "story", id: it.id })}
+                    draggable={!READONLY}
+                    onDragStart={() => !READONLY && setDrag({ kind: "story", id: it.id })}
                     onDragEnd={() => setDrag(null)}
                     className="card"
                     style={{ borderLeft: `3px solid ${colAccent[col.key]}` }}
@@ -288,14 +292,16 @@ function StoryPanel({ state, reload, selectedEpic, openStory, drag, setDrag }) {
                             </span>
                             <PhaseBadge phase={it.phase} />
                           </span>
-                          <div className="card-actions">
-                            <button className="icon-btn" onClick={() => setEditing(it.id)}>
-                              <Pencil size={13} />
-                            </button>
-                            <button className="icon-btn" onClick={() => del(it.id)}>
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          {!READONLY && (
+                            <div className="card-actions">
+                              <button className="icon-btn" onClick={() => setEditing(it.id)}>
+                                <Pencil size={13} />
+                              </button>
+                              <button className="icon-btn" onClick={() => del(it.id)}>
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <div className="card-title">{it.title}</div>
                         {it.desc && <div className="card-desc">{it.desc}</div>}
@@ -306,42 +312,43 @@ function StoryPanel({ state, reload, selectedEpic, openStory, drag, setDrag }) {
                     )}
                   </div>
                 ))}
-                {adding === col.key ? (
-                  <div className="add-form">
-                    <input
-                      autoFocus
-                      placeholder="Titolo storia"
-                      value={form.title}
-                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                      onKeyDown={(e) => e.key === "Enter" && add(col.key)}
-                      className="input"
-                    />
-                    <input
-                      placeholder="Descrizione"
-                      value={form.desc}
-                      onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))}
-                      className="input"
-                    />
-                    <div className="form-row">
-                      <button className="btn-primary" onClick={() => add(col.key)}>
-                        Aggiungi
-                      </button>
-                      <button
-                        className="btn-ghost"
-                        onClick={() => {
-                          setAdding(null);
-                          setForm({ title: "", desc: "" });
-                        }}
-                      >
-                        Annulla
-                      </button>
+                {!READONLY &&
+                  (adding === col.key ? (
+                    <div className="add-form">
+                      <input
+                        autoFocus
+                        placeholder="Titolo storia"
+                        value={form.title}
+                        onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && add(col.key)}
+                        className="input"
+                      />
+                      <input
+                        placeholder="Descrizione"
+                        value={form.desc}
+                        onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))}
+                        className="input"
+                      />
+                      <div className="form-row">
+                        <button className="btn-primary" onClick={() => add(col.key)}>
+                          Aggiungi
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          onClick={() => {
+                            setAdding(null);
+                            setForm({ title: "", desc: "" });
+                          }}
+                        >
+                          Annulla
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button className="add-btn" onClick={() => setAdding(col.key)}>
-                    <Plus size={15} /> Aggiungi
-                  </button>
-                )}
+                  ) : (
+                    <button className="add-btn" onClick={() => setAdding(col.key)}>
+                      <Plus size={15} /> Aggiungi
+                    </button>
+                  ))}
               </div>
             </div>
           );

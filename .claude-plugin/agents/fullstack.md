@@ -35,14 +35,14 @@ You own the FE↔BE contract end-to-end — that is the whole point of using you
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
-- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
-- your cards: `GET /knowledge?project_id=<id>&role=fullstack`.
+- profile: `tabula_request` GET `/projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `tabula_request` GET `/knowledge?project_id=<id>&role=fullstack`.
 Never block if the board is down (best-effort).
 
 ## Tabula protocol (observability)
-If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the board by following `~/.claude/tabula-protocol.md`. Your agent name is **fullstack**.
-- On startup: locate/register your agent by name; PATCH agent → `status=active` + `current_task` (summary of the task); PATCH task → `status=progress`, `agent_id=<your id>`.
-- On successful completion: PATCH task → `status=done`; PATCH agent → `status=idle`, `current_task="Inattivo"`.
-- **Update the task `md`** with what was done (files touched, decisions, notes, links), *appending* to the description + architectural decisions written by the architect: `PATCH /tasks/{id} {md: "<updated md>"}`.
+If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the board using the **`tabula` MCP tools** (see `~/.claude/tabula-protocol.md`; raw HTTP is the fallback). Your agent name is **fullstack**.
+- On startup: `tabula_get_or_register_agent` (name=your name, `status=active`, `current_task`=task summary); `tabula_set_status` (entity=`task`, id=`<task_id>`, `status=progress`); if the architect did not already assign it to you, claim it with `tabula_request` PATCH `/tasks/{id} {agent_id}` (your id from the agent record).
+- On successful completion: `tabula_set_status` (entity=`task`, id, `status=done`); `tabula_get_or_register_agent` (name, `status=idle`, `current_task="Inattivo"`).
+- **Append to the task `md`** what was done (files touched, decisions, notes, links) on top of the architect's description: `tabula_append_md` (entity=`task`, id, text=`<notes>`).
 - On error/block: leave the task in `progress`, report the reason in the result, do not set it `done`.
 - It is best-effort: if Tabula does not respond, do NOT block the real work — proceed and flag it.

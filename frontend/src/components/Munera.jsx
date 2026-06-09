@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2, Cpu, FileText } from "lucide-react";
 import { COLS, colAccent, ColHeader, MdEditor } from "./shared.jsx";
 import * as api from "../api.js";
+import { READONLY } from "../config.js";
 
 // Board dei task di una storia (stile Trello). Ogni task ha un documento MD
 // (descrizione del lavoro + scelte architetturali + note di lavoro).
@@ -52,8 +53,8 @@ export default function Munera({ state, reload, storyId, drag, setDrag }) {
               {items.map((it) => (
                 <div
                   key={it.id}
-                  draggable
-                  onDragStart={() => setDrag({ kind: "task", id: it.id })}
+                  draggable={!READONLY}
+                  onDragStart={() => !READONLY && setDrag({ kind: "task", id: it.id })}
                   onDragEnd={() => setDrag(null)}
                   className="card"
                   style={{ borderLeft: `3px solid ${colAccent[col.key]}` }}
@@ -102,12 +103,16 @@ export default function Munera({ state, reload, storyId, drag, setDrag }) {
                           >
                             <FileText size={13} />
                           </button>
-                          <button className="icon-btn" onClick={() => setEditing(it.id)}>
-                            <Pencil size={13} />
-                          </button>
-                          <button className="icon-btn" onClick={() => del(it.id)}>
-                            <Trash2 size={13} />
-                          </button>
+                          {!READONLY && (
+                            <>
+                              <button className="icon-btn" onClick={() => setEditing(it.id)}>
+                                <Pencil size={13} />
+                              </button>
+                              <button className="icon-btn" onClick={() => del(it.id)}>
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                       {it.agent_id && (
@@ -127,36 +132,37 @@ export default function Munera({ state, reload, storyId, drag, setDrag }) {
                   )}
                 </div>
               ))}
-              {adding === col.key ? (
-                <div className="add-form">
-                  <input
-                    autoFocus
-                    placeholder="Titolo task"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && add(col.key)}
-                    className="input"
-                  />
-                  <div className="form-row">
-                    <button className="btn-primary" onClick={() => add(col.key)}>
-                      Aggiungi
-                    </button>
-                    <button
-                      className="btn-ghost"
-                      onClick={() => {
-                        setAdding(null);
-                        setTitle("");
-                      }}
-                    >
-                      Annulla
-                    </button>
+              {!READONLY &&
+                (adding === col.key ? (
+                  <div className="add-form">
+                    <input
+                      autoFocus
+                      placeholder="Titolo task"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && add(col.key)}
+                      className="input"
+                    />
+                    <div className="form-row">
+                      <button className="btn-primary" onClick={() => add(col.key)}>
+                        Aggiungi
+                      </button>
+                      <button
+                        className="btn-ghost"
+                        onClick={() => {
+                          setAdding(null);
+                          setTitle("");
+                        }}
+                      >
+                        Annulla
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <button className="add-btn" onClick={() => setAdding(col.key)}>
-                  <Plus size={15} /> Aggiungi
-                </button>
-              )}
+                ) : (
+                  <button className="add-btn" onClick={() => setAdding(col.key)}>
+                    <Plus size={15} /> Aggiungi
+                  </button>
+                ))}
             </div>
           </div>
         );

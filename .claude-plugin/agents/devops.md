@@ -73,17 +73,13 @@ Do not rebuild everything if an ensure-up is enough.
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
-- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
-- your cards: `GET /knowledge?project_id=<id>&role=devops`.
+- profile: `tabula_request` GET `/projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `tabula_request` GET `/knowledge?project_id=<id>&role=devops`.
 Never block if the board is down (best-effort).
 
 ## Tabula protocol (observability)
 If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your
-state on the board by following `~/.claude/tabula-protocol.md`. Your agent name is **devops**.
-- Startup: locate/register the agent by name; PATCH agent → `status=active` + `current_task`;
-  PATCH task → `status=progress`, `agent_id=<your id>`.
-- End: PATCH task → `status=done` **only if the environment is ready**; if something remained down
-  or a repo was skipped in a blocking way, leave the task in `progress` and flag it. Then
-  PATCH agent → `status=idle`, `current_task="Inattivo"`.
-- **Append** the report into the task `md`. It is best-effort: if Tabula does not respond, do NOT
-  block the real work — proceed and flag it.
+state on the board using the **`tabula` MCP tools** (see `~/.claude/tabula-protocol.md`; raw HTTP is the fallback). Your agent name is **devops**.
+- Startup: `tabula_get_or_register_agent` (name=`devops`, `status=active`, `current_task`); `tabula_set_status` (entity=`task`, id, `status=progress`); claim it if needed with `tabula_request` PATCH `/tasks/{id} {agent_id}`.
+- End: `tabula_set_status` (entity=`task`, id, `status=done`) **only if the environment is ready**; if something remained down or a repo was skipped in a blocking way, leave the task in `progress` and flag it. Then `tabula_get_or_register_agent` (name, `status=idle`, `current_task="Inattivo"`).
+- **Append** the report into the task `md` with `tabula_append_md` (entity=`task`, id, text). It is best-effort: if Tabula does not respond, do NOT block the real work — proceed and flag it.
