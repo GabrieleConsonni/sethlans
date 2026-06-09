@@ -1,0 +1,8 @@
+{
+  "name": "sethlans",
+  "version": "1.0.0",
+  "description": "PO→UX→architect→dev orchestration flow with Tabula board visualization",
+  "author": "gabrieleconsonni",
+  "skills": ["skills/sethlans.md"],
+  "agents": ["agents/"]
+}

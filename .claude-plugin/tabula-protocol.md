@@ -1,8 +1,8 @@
 # Tabula Protocol — reflecting work state
 
 `tabula` is the board that visually renders what the workspace subagents are doing.
-It is a **FastAPI REST API + Postgres** (dedicated `tabula` schema, managed
-with Alembic); the React frontend polls every 4s. Agents reflect their own state **only via HTTP**
+It is a **FastAPI REST API + SQLite (default) or PostgreSQL** (configurable via `TABULA_DB_URL`,
+managed with Alembic); the React frontend polls every 4s. Agents reflect their own state **only via HTTP**
 (no files to write). Each epic/story/task has a **Markdown document `md`**
 persisted in the DB.
 

@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # Installs the Sethlans toolkit into Claude Code's global home (~/.claude).
-# Copies the /sethlans command, the generic subagents, and the Tabula protocol.
+# Copies the /sethlans skill, the generic subagents, and the Tabula protocol.
+# Source of truth: ../.claude-plugin/ (plugin directory).
 #
 # Usage:
 #   ./install.sh            # copy (skips files that already exist)
 #   ./install.sh --force    # overwrite
+#
+# Preferred: use the Claude Code plugin system instead:
+#   /plugin install sethlans@claude-community
 set -euo pipefail
 
-SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SRC="$REPO_ROOT/.claude-plugin"
 DEST="${HOME}/.claude"
 FORCE=0
 [[ "${1:-}" == "--force" ]] && FORCE=1
@@ -25,8 +30,8 @@ copy_safe() {
   echo "  copied: $to"
 }
 
-copy_safe "$SRC/commands/sethlans.md" "$DEST/commands/sethlans.md"
-copy_safe "$SRC/tabula-protocol.md"   "$DEST/tabula-protocol.md"
+copy_safe "$SRC/skills/sethlans.md"  "$DEST/commands/sethlans.md"
+copy_safe "$SRC/tabula-protocol.md"  "$DEST/tabula-protocol.md"
 for f in "$SRC"/agents/*.md; do
   copy_safe "$f" "$DEST/agents/$(basename "$f")"
 done

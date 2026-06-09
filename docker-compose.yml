@@ -3,10 +3,11 @@ services:
     build: ./backend
     container_name: tabula-backend
     environment:
-      # Postgres on the host (dedicated schema `tabula`). Override via .env (see .env.example).
-      - TABULA_DB_URL=${TABULA_DB_URL:-postgresql+psycopg2://postgres:password@host.docker.internal:5432/tabula}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"   # reaches the host's Postgres on Linux
+      # Default: SQLite persistito nel volume `tabula-data`.
+      # Per PostgreSQL: TABULA_DB_URL=postgresql+psycopg2://user:pass@host:5432/db
+      - TABULA_DB_URL=${TABULA_DB_URL:-sqlite:////data/tabula.db}
+    volumes:
+      - tabula-data:/data
     ports:
       - "9955:9955"
     restart: unless-stopped
@@ -15,13 +16,16 @@ services:
     build:
       context: ./frontend
       args:
-        # URL used by the browser to reach the backend on the host
+        # URL usato dal browser per raggiungere il backend sull'host
         VITE_API_URL: http://localhost:9955
-      # For a private/proxy npm registry, add the `npmrc` secret via
-      # docker-compose.override.yml (see docker-compose.override.yml.example).
+      # Per un registry npm privato: aggiungere il secret `npmrc` via
+      # docker-compose.override.yml (vedi docker-compose.override.yml.example).
     container_name: tabula-frontend
     ports:
       - "5173:80"
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  tabula-data:
