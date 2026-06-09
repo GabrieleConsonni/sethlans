@@ -16,6 +16,10 @@
       "env": {
         "TABULA_API_URL": "${TABULA_API_URL}"
       }
+    },
+    "build": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/build.mjs"]
     }
   }
 }
