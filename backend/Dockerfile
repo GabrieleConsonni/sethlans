@@ -2,11 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Dipendenze base (SQLite incluso in stdlib Python — nessuna dipendenza esterna).
-# Per PostgreSQL usare requirements-postgres.txt passando --build-arg REQUIREMENTS=requirements-postgres.txt
-ARG REQUIREMENTS=requirements.txt
-COPY requirements.txt requirements-postgres.txt ./
-RUN pip install --no-cache-dir -r ${REQUIREMENTS}
+# Dipendenze uguali a prescindere dal database: includono sempre psycopg2,
+# così l'immagine funziona sia con SQLite (default) sia con PostgreSQL.
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
