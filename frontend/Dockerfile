@@ -5,13 +5,17 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
+# Disabilita update-notifier/fund/audit: girano dentro l'exit handler di npm e
+# in Docker provocano il crash "Exit handler never called!" (npm/cli#7657) che
+# fa fallire l'install lasciando node_modules incompleto (-> "vite: not found").
+ENV npm_config_update_notifier=false \
+    npm_config_fund=false \
+    npm_config_audit=false
 # Registry npm pubblico di default. Per un registry privato/proxy puoi passare un
 # ~/.npmrc come BuildKit secret (id=npmrc): è OPZIONALE (required=false) e il token
 # NON finisce nell'immagine. Vedi docker-compose.override.yml.example.
 # `--include=dev` forza l'installazione delle devDependencies (vite, plugin-react):
 # servono per `vite build` e in CI verrebbero altrimenti omesse.
-# NB: serve node:22 (npm >= 10.9): npm 10.8.2 di node:20 ha il bug "Exit handler
-# never called!" che interrompe l'install lasciando node_modules incompleto.
 RUN --mount=type=secret,id=npmrc,required=false,target=/root/.npmrc npm ci --include=dev
 
 COPY . .
