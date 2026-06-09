@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # --- Stage 1: build dei file statici con Vite ---
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -10,7 +10,9 @@ COPY package*.json ./
 # NON finisce nell'immagine. Vedi docker-compose.override.yml.example.
 # `--include=dev` forza l'installazione delle devDependencies (vite, plugin-react):
 # servono per `vite build` e in CI verrebbero altrimenti omesse.
-RUN --mount=type=secret,id=npmrc,required=false,target=/root/.npmrc npm install --include=dev
+# NB: serve node:22 (npm >= 10.9): npm 10.8.2 di node:20 ha il bug "Exit handler
+# never called!" che interrompe l'install lasciando node_modules incompleto.
+RUN --mount=type=secret,id=npmrc,required=false,target=/root/.npmrc npm ci --include=dev
 
 COPY . .
 
