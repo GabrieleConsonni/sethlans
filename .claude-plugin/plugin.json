@@ -17,9 +17,12 @@
         "TABULA_API_URL": "${TABULA_API_URL}"
       }
     },
-    "build": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/build.mjs"]
+    "jdtls": {
+      "command": "npx",
+      "args": ["-y", "java-lsp-mcp-server"],
+      "env": {
+        "PROJECT_ROOT": "${JDTLS_PROJECT_PATH}"
+      }
     }
   }
 }
