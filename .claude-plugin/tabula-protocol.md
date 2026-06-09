@@ -1,8 +1,8 @@
 # Tabula Protocol — reflecting work state
 
 `tabula` is the board that visually renders what the workspace subagents are doing.
-It is a **FastAPI REST API + Postgres** (dedicated `tabula` schema, managed
-with Alembic); the React frontend polls every 4s. Agents reflect their own state **only via HTTP**
+It is a **FastAPI REST API + SQLite (default) or PostgreSQL** (configurable via `TABULA_DB_URL`,
+managed with Alembic); the React frontend polls every 4s. Agents reflect their own state **only via HTTP**
 (no files to write). Each epic/story/task has a **Markdown document `md`**
 persisted in the DB.
 
@@ -21,16 +21,14 @@ Updating Tabula is **observability**, not part of the real work.
 - Healthcheck: `GET /state` (if it responds 200, the board is reachable).
 
 ## Data model (exact fields)
-- **project**: `id, name, type, jira_key, md, md_updated_at, config` — type ∈ `{jira, internal}`. `md` = the consultable **project profile** (mirror of `CLAUDE.md` + pack); `config` = JSON of per-role pointers (Confluence space, design-system, test environments…). Managed by `/sethlans-onboard`.
-- **epic**: `id, title, desc, status, project_id, md, md_updated_at` — status ∈ `{todo, progress, done}`. Every epic belongs to a **project** (`project_id`).
+- **epic**: `id, title, desc, status, md, md_updated_at` — status ∈ `{todo, progress, done}`
 - **story**: `id, title, desc, status, phase, epic_id, md, md_updated_at` — status ∈ `{todo, progress, done}`, phase ∈ `{analysis, ux, design, dev, done}`
 - **task**: `id, title, status, story_id, agent_id?, md, md_updated_at` — status ∈ `{todo, progress, done}`
 - **agent**: `id, name, current_task, status, tokens` — status ∈ `{active, idle}`
-- **knowledge**: `id, project_id, role, kind, title, source, md, md_updated_at` — project-scoped **knowledge card** (project profile + pre-training KB). `role` ∈ `{general, po, architect, ux, tester, frontend, be-python, be-java, fullstack, reviewer, devops}`, `kind` ∈ `{profile, kb, learnings}`, `source` ∈ `{claude_md, confluence, jira, code, manual}`.
 
 `md` is the associated Markdown document (analysis/mockups for stories, description +
 architectural choices + work notes for tasks). `md_updated_at` is set by the
-server when the `md` changes. IDs are server-generated (prefix `p/e/s/t/a/k` +
+server when the `md` changes. IDs are server-generated (prefix `e/s/t/a` +
 8 hex): **do not invent them**, always use the `id` returned by the POSTs or read from the GETs.
 
 ## Story phases (`phase`)
@@ -69,52 +67,6 @@ One `agent` record for each subagent, identified **by name** (the id is dynamic)
 - `product-owner`, `ux-designer` and `architect` work on the story phases
   (analysis/ux/design), normally **without implementation tasks**: the PO creates/updates
   epics and stories, UX produces mockups in the md, the architect creates the tasks for the devs.
-
-## Test responsibility split
-- **Fast unit tests** → owned by the **dev** subagent (`frontend`/`be-python`/`be-java`/`fullstack`): the dev runs them (excluding slow integration suites) and they must pass before the task is `done`.
-- **Integration + E2E/UI + API acceptance** → owned by the **tester**: it runs the slow integration suites the devs skip (e.g. `*IntegrationTest`/Testcontainers/DB-backed) plus the end-to-end flows, **after** the dev tasks are `done` and ideally **in parallel with the user's own functional tests**. The tester does not re-run fast unit suites.
-- **Code quality / security / maintainability** → owned by the **reviewer** (no test execution responsibility).
-
-## Project profile & knowledge cards (pre-training)
-The **project profile** (`project.md` + `project.config`) and the **knowledge cards**
-(`knowledge`) make the project's spec consultable on the board and readable by the agents.
-They are produced/refreshed by **`/sethlans-onboard`** and consumed at the start of work.
-
-- **Profile** = mirror of the current project's `CLAUDE.md` + pack, plus structured
-  per-role pointers in `config` (Jira project, Confluence space, design-system, test
-  environments). Source of truth stays in the repo (`CLAUDE.md` + `.claude/project-profile.yaml`);
-  Tabula is the **consultable mirror** — do not treat the board copy as authoritative.
-- **Knowledge cards** = one card per role/domain (`role`), `kind=kb` for extracted
-  knowledge (e.g. architecture KB, UX/design-system), `kind=learnings` for what agents
-  learn at runtime. Born on the board (or Confluence) — that is their source of truth.
-
-### Consumption rule (all subagents)
-At the **start** of a task, best-effort read the project profile and your own card before
-working (so the spec is honoured); never block if the board is down:
-```powershell
-$proj = (Tab GET '/projects') | Where-Object { $_.name -eq $projectName } | Select-Object -First 1
-$profile = $proj.md                                   # project profile (CLAUDE.md mirror)
-$mine = Tab GET "/knowledge?project_id=$($proj.id)&role=architect"   # your role's cards
-```
-
-### Find-or-create the project profile (orchestrator / onboard)
-```powershell
-$projectName = 'alkrya'
-$proj = (Tab GET '/projects') | Where-Object { $_.name -eq $projectName } | Select-Object -First 1
-if (-not $proj) { $proj = Tab POST '/projects' @{ name = $projectName; type = 'jira'; jira_key = '' } }
-# mirror CLAUDE.md + pack into the profile, and the per-role pointers into config:
-Tab PATCH "/projects/$($proj.id)" @{ md = $claudeMdDistilled; config = $pointers }
-```
-
-### Create/update a knowledge card (pre-training agents)
-```powershell
-$card = (Tab GET "/knowledge?project_id=$($proj.id)&role=ux") | Where-Object { $_.title -eq 'Design system' } | Select-Object -First 1
-if (-not $card) {
-  $card = Tab POST '/knowledge' @{ project_id = $proj.id; role = 'ux'; kind = 'kb'; source = 'confluence'; title = 'Design system'; md = '# Components...' }
-} else {
-  Tab PATCH "/knowledge/$($card.id)" @{ md = '# Components (updated)...' }   # md_updated_at set by server
-}
-```
 
 ## Recipes (PowerShell — Windows environment)
 The server runs on Windows; `Invoke-RestMethod` does native JSON parsing (no `jq`).

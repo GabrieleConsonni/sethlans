@@ -22,7 +22,7 @@ time on **Tabula**, the board that serves as the system's visual component.
 | **`/sethlans`** | The orchestrator command: request ingest and phase coordination. | [`claude-config/commands/sethlans.md`](claude-config/commands/sethlans.md) |
 | **Subagent** | 10 generic, reusable agents (PO, UX, architect, frontend, be-python, be-java, fullstack, devops, reviewer, tester). They make no assumptions about a project: they read the `CLAUDE.md` of the repo they work on. | [`claude-config/agents/`](claude-config/agents) |
 | **Protocol** | The integration contract with the board (base URL, data model, enums, recipes): single source of truth cited by command and agents. | [`claude-config/tabula-protocol.md`](claude-config/tabula-protocol.md) |
-| **Tabula** | The **visual component**: board (FastAPI + Postgres + React) that renders what the agents are doing. | [`docs/tabula.md`](docs/tabula.md) · `backend/` · `frontend/` |
+| **Tabula** | The **visual component**: board (FastAPI + SQLite/PostgreSQL + React) that renders what the agents are doing. | [sethlans-docs/tabula.md](https://github.com/GabrieleConsonni/sethlans-docs/blob/main/tabula.md) · `backend/` · `frontend/` |
 
 Command, subagents, and protocol are **global** Claude Code configuration (they live in
 `~/.claude/`); Tabula is a standalone **app** that the agents update via HTTP. Reflecting
@@ -63,16 +63,15 @@ Details: [`claude-config/README.md`](claude-config/README.md).
 ### 2. Start Tabula (the board)
 
 ```bash
-docker compose up --build -d        # or: tabula.bat (Windows)
+docker compose up --build -d
 ```
 Interface → <http://localhost:5173> · API/docs → <http://localhost:9955/docs>.
-Complete guide (Docker, running without Docker, API, data schema): [`docs/tabula.md`](docs/tabula.md).
+Complete guide (Docker, without Docker, API, data schema): [sethlans-docs/tabula.md](https://github.com/GabrieleConsonni/sethlans-docs/blob/main/tabula.md).
 
 ### Prerequisites
 
 - **Claude Code** with the toolkit installed.
-- **Docker Desktop** + a reachable **Postgres** (for the board). Local values in `.env`
-  (copy from `.env.example`); optional private npm registry via `docker-compose.override.yml`.
+- **Docker Desktop** (for the board — SQLite by default, no external DB required).
 - For ingest from Jira/Confluence: the **Atlassian MCP** configured in Claude Code.
 - On the project you work on, a **`CLAUDE.md`** describing stack/commands/environments (see
   [`CLAUDE.md`](CLAUDE.md) of this repo as an example).
@@ -84,14 +83,14 @@ sethlans/
 ├── README.md                     # this file (Sethlans)
 ├── CLAUDE.md                     # project guide for the subagents
 ├── LICENSE · NOTICE              # Apache 2.0
-├── claude-config/                # the Sethlans toolkit (global Claude Code config)
-│   ├── commands/sethlans.md      #   the /sethlans command
+├── .claude-plugin/               # Claude Code plugin (skills + agents + protocol)
+│   ├── plugin.json               #   plugin manifest
+│   ├── skills/sethlans.md        #   the /sethlans orchestrator skill
 │   ├── agents/                   #   the 10 generic subagents
-│   ├── tabula-protocol.md        #   board API contract
-│   └── install.ps1 / install.sh  #   installer → ~/.claude/
-├── docs/
-│   └── tabula.md                 # complete guide to the Tabula board
-├── backend/                      # Tabula — FastAPI API + Postgres/Alembic
+│   └── tabula-protocol.md        #   board API contract
+├── claude-config/                # legacy manual installer → ~/.claude/
+│   └── install.ps1 / install.sh
+├── backend/                      # Tabula — FastAPI API + SQLite/PostgreSQL/Alembic
 ├── frontend/                     # Tabula — React/Vite SPA
 └── docker-compose*.yml · *.bat   # starting the board
 ```
