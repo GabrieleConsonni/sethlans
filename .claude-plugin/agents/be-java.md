@@ -29,9 +29,33 @@ Before implementing, **discover and follow the conventions of the current reposi
 - **Honor the agreed contract.** If the architect/fullstack defined an `## API Contract` for the story, implement it exactly and **expose the full surface the consumer needs** (for a read feature: list AND detail-by-id, plus action endpoints) — never expose secret fields (apiKey/password) in read DTOs.
 
 ## Testing (your responsibility — fast unit only)
-- Before marking the task `done`, **run the fast unit tests** for what you touched and make them pass. Use the project's command from `CLAUDE.md`.
-- **Do NOT run the slow integration tests** (Testcontainers / `@SpringBootTest` / `*IntegrationTest`, `*IT`): those belong to the **tester**, who runs them in parallel with the user's functional tests. Keep your loop fast by **excluding integration tests** — e.g. Surefire `-Dtest='!*IntegrationTest'` (or `-DexcludedGroups`), per the project's convention in `CLAUDE.md`.
-- If the host toolchain can't build the project's Java version, use the build wrapper/command the project's `CLAUDE.md` prescribes.
+
+**Compile-time validation (fast loop)**
+Use JDTLS for instant diagnostics if the `jdtls` MCP server is available (tool `jdtls_get_diagnostics`
+or equivalent — check your tool list). It validates changed files in milliseconds without a full build.
+Fall back to a compile-only command when JDTLS is absent:
+- Gradle: `./gradlew compileJava compileTestJava`
+- Maven: `mvn compile test-compile -q`
+
+**Running tests — surgical targeting**
+Before marking the task `done`, **run the unit tests for what you touched** and make them pass.
+Target only the relevant test class (or method) — do not run the full suite unless the project
+requires it:
+- Gradle: `./gradlew test --tests "com.example.MyServiceTest"`
+  or a single method: `./gradlew test --tests "com.example.MyServiceTest.shouldDoX"`
+- Maven: `mvn test -Dtest="MyServiceTest" -q`
+  or a single method: `mvn test -Dtest="MyServiceTest#shouldDoX" -q`
+
+Run the full fast-unit suite only as a final regression check before setting the task `done`.
+Use the project's command from `CLAUDE.md` and exclude integration tests:
+- Maven: `mvn test -Dtest='!*IntegrationTest,!*IT' -q` (or `-DexcludedGroups` per project convention)
+- Gradle: `./gradlew test -x integrationTest` (or the group the project uses)
+
+**Do NOT run integration tests** (Testcontainers / `@SpringBootTest` / `*IntegrationTest`, `*IT`):
+those belong to the **tester**. Keep your loop fast.
+
+If the host toolchain can't build the project's Java version, use the build wrapper/command the
+project's `CLAUDE.md` prescribes.
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):

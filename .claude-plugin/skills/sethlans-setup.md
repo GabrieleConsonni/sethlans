@@ -17,6 +17,7 @@ Input: **$ARGUMENTS**
   `postgresql+psycopg2://user:pass@host:5432/tabula`).
 - `--port <n>` → expose the backend API on a custom host port (default `9955`); the frontend
   always stays on `5173`.
+- `--jdtls <project-path>` → add the optional **JDTLS service** to the stack (see §8).
 
 ## 1. Is the board already up?
 - `GET http://localhost:9955/state` (or the `--port`/`TABULA_API_URL` override). If it
@@ -94,6 +95,68 @@ free-form description>`** to start the flow, and **`/sethlans-onboard`** to pre-
 profile. Without Atlassian configured, a free-form description works fine — the Product Owner
 drafts the analysis itself. Once the board is up, the subagents interact with it via the `tabula`
 MCP tools (raw HTTP is the fallback).
+
+## 8. Optional: JDTLS service (`--jdtls <project-path>`)
+
+JDTLS (Eclipse Java Development Tools Language Server) lets the `be-java` subagent validate
+code and get diagnostics instantly — without running a full build — by exposing IDE-level
+analysis via an MCP server.
+
+**When to offer it**: whenever the user's project is Java (Maven or Gradle). Mention it
+proactively after a successful Tabula startup if you detect a `pom.xml` or `build.gradle` in
+the workspace.
+
+### 8a. What it adds to the compose stack
+
+Add this service to the compose file (alongside `backend` and `frontend`):
+
+```yaml
+  jdtls:
+    image: ghcr.io/redhat-developer/vscode-java:latest   # ships JDTLS + JDK 21
+    command: ["--add-opens", "java.base/java.util=ALL-UNNAMED"]
+    environment:
+      - WORKSPACE_DIR=/workspace
+    volumes:
+      - <project-path>:/workspace:ro          # bind-mount the Java project (read-only)
+      - jdtls-data:/jdtls-workspace           # persistent index / cache
+    ports:
+      - "3333:3333"                           # MCP HTTP bridge (see 8b)
+    restart: unless-stopped
+```
+
+Add the volume at the top level:
+```yaml
+volumes:
+  tabula-data:
+  jdtls-data:
+```
+
+> **Note**: `<project-path>` is the absolute path passed via `--jdtls`. Ask the user to
+> confirm it before writing the compose file.
+
+### 8b. MCP bridge
+
+JDTLS speaks LSP over stdio; to expose it to Claude Code agents as an MCP server, the user
+must run a local bridge. Recommend `java-lsp-mcp-server` (Node.js, no install required):
+
+```bash
+JDTLS_PROJECT_PATH=<project-path> npx -y java-lsp-mcp-server
+```
+
+The bridge is registered in `plugin.json` as the `jdtls` MCP server and activated by setting
+`JDTLS_PROJECT_PATH` in the shell where Claude Code runs. Instruct the user to add this env
+var to their shell profile (`.zshrc` / `.bashrc` / PowerShell profile).
+
+### 8c. First-run indexing
+
+On first startup JDTLS indexes the entire project (reads sources + resolves classpath). This
+takes 30–120 seconds depending on project size. The `jdtls-data` volume caches the result so
+subsequent startups are fast (a few seconds).
+
+### 8d. Teardown
+
+`down` removes the JDTLS container along with the rest of the stack. The `jdtls-data` volume
+is preserved (same rule as `tabula-data`): only deleted if the user explicitly asks.
 
 **Cross-cutting rules**: confirm before any host-mutating Docker command; never delete the data
 volume without explicit consent; the board is a convenience — if Docker is unavailable, say so

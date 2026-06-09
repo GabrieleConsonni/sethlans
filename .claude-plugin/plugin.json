@@ -16,6 +16,13 @@
       "env": {
         "TABULA_API_URL": "${TABULA_API_URL}"
       }
+    },
+    "jdtls": {
+      "command": "npx",
+      "args": ["-y", "java-lsp-mcp-server"],
+      "env": {
+        "PROJECT_ROOT": "${JDTLS_PROJECT_PATH}"
+      }
     }
   }
 }
