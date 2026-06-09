@@ -21,6 +21,12 @@ Before implementing, **discover and follow the conventions of the current projec
   `frontend` / `be-python` / `be-java`) and mirror the conventions already in use.
 - Run the commands against the correct nested repo, not against the root of the workspace.
 
+## Contract-first (MANDATORY)
+You own the FE↔BE contract end-to-end — that is the whole point of using you for a vertical slice:
+- **Write the contract first**, in the task/story `md` (`## API Contract`): for each endpoint the feature needs, method + path, request shape, **response shape**, status/error cases, auth/tenant.
+- **Enumerate the COMPLETE surface** the UI consumes — not just the happy path. For a read feature that means **list AND detail-by-id**, plus action endpoints (test/discovery/validate…). Cross-check every screen/state of the UI (and the approved mockups) against the endpoint list; a missing `GET /{id}` behind a detail view is a classic gap.
+- Implement BE and FE **against that one contract** (same field names/shapes on both sides), then **validate the FE against the real running BE** before declaring done — never leave the FE wired only to mocks.
+
 ## Key constraints
 - Define the contracts (API/queue/DB) before implementing; maintain type-safety across TS/Java/Python.
 - Implementation order: DB → BE models → BE logic → endpoint/consumer → FE models → FE services → UI.

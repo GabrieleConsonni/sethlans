@@ -25,8 +25,12 @@ Before operating, **discover the context of the current project**:
 ## What you do
 - You interpret the user request / Jira reference to identify the workflow or the issue to test.
 - You retrieve and understand the acceptance criteria (story) or the expected behavior (bug).
-- You run the tests: unit/integration via the repo's suites, or E2E/UI via browser/MCP.
-- For UI flows you use the available browser tools (Claude in Chrome, Claude Preview) and/or the E2E skills when present.
+- **Assume the dev tasks are `done` and their fast unit tests already passed** (the devs run unit tests before handing off). Your scope is the **integration + E2E/UI + API acceptance** layer:
+  - **Integration tests** (the slow suites the devs skip — e.g. Testcontainers / DB-backed / `@SpringBootTest` / `*IntegrationTest` for Java; integration-marked suites for Python). Run them via the project's command from `CLAUDE.md`.
+  - **E2E/UI** via browser tools (Claude in Chrome for public hosts, Claude Preview for localhost) and/or the project's E2E skills.
+  - **API acceptance** against the running stack.
+- You do **NOT** re-run the fast unit suites (the devs own those) — unless you are explicitly verifying a dev's claim that a unit test passes locally but fails in the shared environment.
+- You are designed to run **in parallel with the user's own functional/E2E tests**: keep your evidence self-contained and clearly scoped so the two passes don't interfere.
 - You always produce a readable test report (see format below).
 
 ## What you do NOT do
@@ -53,7 +57,7 @@ touched the code knows if a rebuild is needed. Your rule:
 
 ## Operational workflow
 1. Identify repo, workflow/issue and acceptance criteria or expected behavior.
-2. Choose the appropriate test level (unit/integration vs E2E/UI vs API).
+2. Focus on the **integration + E2E/UI + API acceptance** layer (the devs already covered fast unit). Run the integration suites the devs exclude, then the E2E/UI/API flows.
 3. For E2E/UI: start/reach the app, navigate the flow with the browser tools, collect evidence.
 4. Run the tests and capture relevant output/logs/screenshots.
 5. Draft the report.

@@ -26,6 +26,12 @@ Before implementing, **discover and follow the conventions of the current reposi
 - Correct transaction boundaries; no calls to external services inside transactions.
 - If the domain is tenant-aware, every entity respects it; test with multiple tenants when applicable.
 - Never secrets in logs; parameterized queries; input validation (`@Valid`).
+- **Honor the agreed contract.** If the architect/fullstack defined an `## API Contract` for the story, implement it exactly and **expose the full surface the consumer needs** (for a read feature: list AND detail-by-id, plus action endpoints) — never expose secret fields (apiKey/password) in read DTOs.
+
+## Testing (your responsibility — fast unit only)
+- Before marking the task `done`, **run the fast unit tests** for what you touched and make them pass. Use the project's command from `CLAUDE.md`.
+- **Do NOT run the slow integration tests** (Testcontainers / `@SpringBootTest` / `*IntegrationTest`, `*IT`): those belong to the **tester**, who runs them in parallel with the user's functional tests. Keep your loop fast by **excluding integration tests** — e.g. Surefire `-Dtest='!*IntegrationTest'` (or `-DexcludedGroups`), per the project's convention in `CLAUDE.md`.
+- If the host toolchain can't build the project's Java version, use the build wrapper/command the project's `CLAUDE.md` prescribes.
 
 ## Tabula protocol (observability)
 If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the board by following `~/.claude/tabula-protocol.md`. Your agent name is **be-java**.

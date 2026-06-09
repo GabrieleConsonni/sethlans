@@ -26,6 +26,11 @@ Before implementing, **discover and follow the conventions of the current reposi
 - Polars (not pandas); small, low-complexity functions; complete type hints.
 - Reversible Alembic migrations for every schema change; always qualify tables with the schema.
 - Never secrets in logs; parameterized queries (no SQL injection); Pydantic validation on external input.
+- **Honor the agreed contract.** If the architect/fullstack defined an `## API Contract` for the story, implement it exactly and **expose the full surface the consumer needs** (for a read feature: list AND detail-by-id, plus action endpoints) — never leak secret fields in read schemas.
+
+## Testing (your responsibility — fast unit only)
+- Before marking the task `done`, **run the fast unit tests** for what you touched (the project's `pytest` command, scoped to the touched modules) plus lint/type checks (ruff/mypy) as the project defines. They must pass.
+- **Do NOT run the slow integration tests** (Testcontainers / DB-backed / end-to-end suites): those belong to the **tester**, who runs them in parallel with the user's functional tests. Exclude them per the project convention (e.g. a pytest marker like `-m "not integration"`) if `CLAUDE.md` defines one.
 
 ## Tabula protocol (observability)
 If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the board by following `~/.claude/tabula-protocol.md`. Your agent name is **be-python**.
