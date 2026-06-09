@@ -10,7 +10,7 @@ COPY package*.json ./
 # NON finisce nell'immagine. Vedi docker-compose.override.yml.example.
 # `--include=dev` forza l'installazione delle devDependencies (vite, plugin-react):
 # servono per `vite build` e in CI verrebbero altrimenti omesse.
-RUN --mount=type=secret,id=npmrc,required=false,target=/root/.npmrc npm ci --include=dev
+RUN --mount=type=secret,id=npmrc,required=false,target=/root/.npmrc npm install --include=dev
 
 COPY . .
 
