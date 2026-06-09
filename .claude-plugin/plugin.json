@@ -23,6 +23,13 @@
       "env": {
         "PROJECT_ROOT": "${JDTLS_PROJECT_PATH}"
       }
+    },
+    "angular-ls": {
+      "command": "npx",
+      "args": ["-y", "angular-ls-mcp-server"],
+      "env": {
+        "PROJECT_ROOT": "${ANGULAR_PROJECT_PATH}"
+      }
     }
   }
 }
