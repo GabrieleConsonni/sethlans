@@ -10,6 +10,8 @@ plugin bundle.
   plugin.json            # manifest
   skills/
     sethlans.md          # the /sethlans orchestrator skill
+    sethlans-onboard.md  # /sethlans-onboard: pre-train the project profile on Tabula
+    sethlans-setup.md    # /sethlans-setup: start the Tabula board on Docker
   agents/                # the 10 generic subagents (reusable on any project)
     architect.md
     be-java.md

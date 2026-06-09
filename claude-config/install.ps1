@@ -31,7 +31,9 @@ function Copy-Item-Safe($from, $to) {
     Write-Host "  copied: $to" -ForegroundColor Green
 }
 
-Copy-Item-Safe (Join-Path $src 'skills\sethlans.md') (Join-Path $dest 'commands\sethlans.md')
+Get-ChildItem (Join-Path $src 'skills') -Filter *.md | ForEach-Object {
+    Copy-Item-Safe $_.FullName (Join-Path $dest "commands\$($_.Name)")
+}
 Copy-Item-Safe (Join-Path $src 'tabula-protocol.md') (Join-Path $dest 'tabula-protocol.md')
 
 Get-ChildItem (Join-Path $src 'agents') -Filter *.md | ForEach-Object {
