@@ -276,10 +276,14 @@ def delete_epic(epic_id: str, db: Session = Depends(get_db)):
 
 @app.get("/stories")
 def list_stories(epic_id: Optional[str] = None, status: Optional[str] = None,
-                 phase: Optional[str] = None, db: Session = Depends(get_db)):
+                 phase: Optional[str] = None, project_id: Optional[str] = None,
+                 db: Session = Depends(get_db)):
     q = db.query(Story)
     if epic_id:
         q = q.filter(Story.epic_id == epic_id)
+    if project_id:
+        # stories of a project = stories whose epic belongs to that project
+        q = q.join(Epic, Story.epic_id == Epic.id).filter(Epic.project_id == project_id)
     if status:
         q = q.filter(Story.status == status)
     if phase:

@@ -46,6 +46,12 @@ The mockups exist to be **validated by the user before any implementation**. You
 - Only **after approval** move the story `phase=ux` → `phase=design`.
 - If you are run as a subagent and cannot reach the user directly, **return the mockups + an explicit "needs user approval" flag to the orchestrator and leave the story in `phase=ux`** — never auto-advance.
 
+## Project knowledge — read before working
+At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
+- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `GET /knowledge?project_id=<id>&role=ux`.
+Never block if the board is down (best-effort).
+
 ## Tabula (follow `~/.claude/tabula-protocol.md`)
 - Your agent name is **ux-designer**: on startup `status=active` + `current_task`; at the end `status=idle`.
 - Update the `md` of the story/task with the mockups (`PATCH /stories/{id} {md: ...}` or on the task).

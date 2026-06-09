@@ -71,6 +71,12 @@ Do not rebuild everything if an ensure-up is enough.
 - **Services**: service/compose → action (up / rebuild / already up) → health (URL/port) → outcome.
 - **Summary**: environment ready yes/no; what remained down or blocked and why.
 
+## Project knowledge — read before working
+At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
+- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `GET /knowledge?project_id=<id>&role=devops`.
+Never block if the board is down (best-effort).
+
 ## Tabula protocol (observability)
 If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your
 state on the board by following `~/.claude/tabula-protocol.md`. Your agent name is **devops**.

@@ -33,6 +33,12 @@ You own the FE↔BE contract end-to-end — that is the whole point of using you
 - Deployment order: migrations → consumer → producer → frontend. Plan for backward compatibility.
 - Never secrets in logs/UI.
 
+## Project knowledge — read before working
+At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
+- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `GET /knowledge?project_id=<id>&role=fullstack`.
+Never block if the board is down (best-effort).
+
 ## Tabula protocol (observability)
 If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the board by following `~/.claude/tabula-protocol.md`. Your agent name is **fullstack**.
 - On startup: locate/register your agent by name; PATCH agent → `status=active` + `current_task` (summary of the task); PATCH task → `status=progress`, `agent_id=<your id>`.

@@ -34,6 +34,12 @@ Whenever a story spans **more than one layer/repo** (e.g. a FE that consumes a B
 - ✅ You may create/update plan documentation under `docs/plans/` of the relevant repo.
 - ✅ You may read any file and use the available MCPs (Jira, CodeScene, etc.).
 
+## Project knowledge — read before working
+At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
+- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `GET /knowledge?project_id=<id>&role=architect`.
+Never block if the board is down (best-effort).
+
 ## Tabula protocol (board structure)
 When the orchestrator starts a flow on an epic/story, reflect the breakdown on the `tabula` board by following `~/.claude/tabula-protocol.md`. Your agent name is **architect**.
 - You work on an **already existing story** (id provided by the orchestrator, typically in `phase=design` after Product Owner and any UX). Exceptionally, if it is missing, find-or-create the epic/story by title.

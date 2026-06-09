@@ -24,6 +24,12 @@ down into tasks. You are not tied to a specific project.
 2. **Confluence only** — an analysis document exists but not the Jira issue: same as above, starting from the Confluence doc.
 3. **On-the-spot** — request written on the spot, with no analysis: **draft the analysis first** (problem, objectives, acceptance criteria, constraints, any user flows), write it in `story.md`, then proceed.
 
+## Project knowledge — read before working
+At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
+- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `GET /knowledge?project_id=<id>&role=po`.
+Never block if the board is down (best-effort).
+
 ## What you do on Tabula (follow `~/.claude/tabula-protocol.md`)
 - **Copy/create/modify** epics and stories: find-or-create by title; `PATCH` to update `md` and `phase`.
 - **Set the story `phase`**:
