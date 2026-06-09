@@ -24,6 +24,8 @@ plugin bundle.
     tester.md
     ux-designer.md
   tabula-protocol.md     # the board's API contract (referenced by skill + agents)
+  mcp/
+    server.mjs           # `tabula` MCP server (zero-dep stdio wrapper over the REST API)
 
 claude-config/           ← this folder (installers only)
   install.ps1            # Windows/PowerShell manual installer

@@ -40,4 +40,13 @@ Get-ChildItem (Join-Path $src 'agents') -Filter *.md | ForEach-Object {
     Copy-Item-Safe $_.FullName (Join-Path $dest "agents\$($_.Name)")
 }
 
+# Server MCP `tabula` (wrapper sui REST). La registrazione non può essere fatta
+# da una semplice copia: va aggiunta ai settings di Claude Code (vedi nota sotto).
+New-Item -ItemType Directory -Force -Path (Join-Path $dest 'mcp') | Out-Null
+Copy-Item-Safe (Join-Path $src 'mcp\server.mjs') (Join-Path $dest 'mcp\server.mjs')
+
 Write-Host "Done. Restart Claude Code and type /sethlans to use it." -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Optional - register the Tabula MCP server (cross-platform tools for the board):" -ForegroundColor Cyan
+Write-Host "  claude mcp add tabula -e TABULA_API_URL=http://localhost:9955 -- node `"$dest\mcp\server.mjs`""
+Write-Host "(The Claude Code plugin install wires this automatically; this is only for the manual install.)"

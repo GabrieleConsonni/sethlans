@@ -128,6 +128,9 @@ first tests are introduced.
 
 The PO→UX→architect→dev flow on this board is driven by the `/sethlans` command and the subagents in
 [`claude-config/`](claude-config/README.md). The integration contract with the board (base URL,
-recipes, enums, task→agent map) is in [`claude-config/tabula-protocol.md`](claude-config/tabula-protocol.md):
-it is the **single source of truth** for calls to the board. Updating Tabula is **best-effort and never
-blocking** — if the board does not respond, development work continues anyway.
+recipes, enums, task→agent map) is in [`.claude-plugin/tabula-protocol.md`](.claude-plugin/tabula-protocol.md):
+it is the **single source of truth** for calls to the board. The preferred integration is the **`tabula`
+MCP server** (`.claude-plugin/mcp/server.mjs`, a zero-dependency stdio wrapper over the REST API, wired in
+`plugin.json`), which exposes typed, enum-validated tools and works cross-platform; the raw HTTP recipes are
+a fallback. Updating Tabula is **best-effort and never blocking** — if the board does not respond,
+development work continues anyway.

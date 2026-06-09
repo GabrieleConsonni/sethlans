@@ -38,4 +38,13 @@ for f in "$SRC"/agents/*.md; do
   copy_safe "$f" "$DEST/agents/$(basename "$f")"
 done
 
+# Server MCP `tabula` (wrapper sui REST). La registrazione non può essere fatta
+# da una semplice copia: va aggiunta ai settings di Claude Code (vedi nota sotto).
+mkdir -p "$DEST/mcp"
+copy_safe "$SRC/mcp/server.mjs" "$DEST/mcp/server.mjs"
+
 echo "Done. Restart Claude Code and type /sethlans to use it."
+echo
+echo "Optional — register the Tabula MCP server (cross-platform tools for the board):"
+echo "  claude mcp add tabula -e TABULA_API_URL=http://localhost:9955 -- node \"$DEST/mcp/server.mjs\""
+echo "(The Claude Code plugin install wires this automatically; this is only for the manual install.)"

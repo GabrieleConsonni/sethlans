@@ -2,9 +2,9 @@
 
 `tabula` is the board that visually renders what the workspace subagents are doing.
 It is a **FastAPI REST API + SQLite (default) or PostgreSQL** (configurable via `TABULA_DB_URL`,
-managed with Alembic); the React frontend polls every 4s. Agents reflect their own state **only via HTTP**
-(no files to write). Each epic/story/task has a **Markdown document `md`**
-persisted in the DB.
+managed with Alembic); the React frontend polls every 4s. Agents reflect their own state via the
+**`tabula` MCP server** (preferred) or directly **via HTTP** (no files to write). Each epic/story/task
+has a **Markdown document `md`** persisted in the DB.
 
 This document is the **single source of truth** of the integration: the subagents and
 the orchestration command reference it instead of duplicating the recipes.
@@ -16,7 +16,34 @@ Updating Tabula is **observability**, not part of the real work.
 - If Tabula does not respond (connection refused, timeout, HTTP error), **DO NOT block** the task: proceed with the real work and report in the result that the board update failed.
 - Always wrap the calls in `try/catch` (PowerShell) and must not fail the turn over a network error toward the board.
 
-## Base URL
+## Preferred path — the `tabula` MCP server
+The plugin ships a **stdio MCP server** (`tabula`) that wraps this REST API with typed,
+enum-validated tools. **Prefer the MCP tools** over the raw HTTP/PowerShell recipes: they
+are **cross-platform** (no shell dependency), encapsulate the find-or-create logic, and
+validate enums at the schema. The PowerShell recipes below remain a **fallback** when the
+MCP server is unavailable. Same best-effort rule: the tools return a soft error (never throw)
+if the board is unreachable — keep working on the real task.
+
+Configuration: the server reads `TABULA_API_URL` (default `http://localhost:9955`).
+
+| MCP tool | What it does |
+|---|---|
+| `tabula_get_state` | Snapshot (healthcheck + read). Compact summary by default; `full=true` for the raw `/state`. |
+| `tabula_upsert_project` | Find-or-create a project by name; patches `type/jira_key/md`. |
+| `tabula_upsert_epic` | Find-or-create an epic by title in a project (`project_id` or `project_name`, the latter created if missing). |
+| `tabula_upsert_story` | Find-or-create a story by title under an epic; sets `status/phase/md`. |
+| `tabula_create_task` | Create a task under a story; assign by `agent_name` (find-or-register) or `agent_id`. |
+| `tabula_set_status` | Set `status` of an epic/story/task (and `phase` for stories). |
+| `tabula_get_or_register_agent` | Find-or-register an agent by name; optionally patch `status/current_task/tokens`. |
+| `tabula_add_agent_tokens` | Increment an agent's cumulative `tokens` (read-modify-write). |
+| `tabula_append_md` | Append text to the `md` of any entity (read-modify-write). |
+| `tabula_request` | Low-level escape hatch: arbitrary REST call (only for cases not covered above). |
+
+Typical flow with the tools: `tabula_upsert_project` → `tabula_upsert_epic` → `tabula_upsert_story`
+→ `tabula_create_task` (dev) → `tabula_set_status`/`tabula_append_md` during work →
+`tabula_get_or_register_agent` for the agent lifecycle.
+
+## Base URL (raw HTTP / fallback)
 - Default: `http://localhost:9955`. Override with the environment variable `TABULA_API_URL`.
 - Healthcheck: `GET /state` (if it responds 200, the board is reachable).
 
