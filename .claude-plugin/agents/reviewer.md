@@ -28,13 +28,13 @@ Before reviewing, **discover the context of the current project**:
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
-- profile: `GET /projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
-- your cards: `GET /knowledge?project_id=<id>&role=reviewer`.
+- profile: `tabula_request` GET `/projects` → your project's `md` (mirror of `CLAUDE.md`) + `config` (per-role pointers);
+- your cards: `tabula_request` GET `/knowledge?project_id=<id>&role=reviewer`.
 Never block if the board is down (best-effort).
 
 ## Tabula protocol (observability)
-If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the `tabula` board by following `~/.claude/tabula-protocol.md`. Your agent name is **reviewer**.
-- On startup: locate/register your agent by name; PATCH agent → `status=active` + `current_task` (summary of the review); PATCH task → `status=progress`, `agent_id=<your id>`.
-- At the end of the review: PATCH task → `status=done` if the review is complete (even with BLOCKERS: the review task is done — the BLOCKERS live in the report, not in the task state). Then PATCH agent → `status=idle`, `current_task="Inattivo"`.
-- **Update the task `md`** with the outcome of the review (synthesis, BLOCKERS/SUGGESTIONS/NITS, files examined, Code Health), *appending*: `PATCH /tasks/{id} {md: "<updated md>"}`.
+If the orchestrator passes you a `task_id` (and optionally `TABULA_API_URL`), reflect your state on the `tabula` board using the **`tabula` MCP tools** (see `~/.claude/tabula-protocol.md`; raw HTTP is the fallback). Your agent name is **reviewer**.
+- On startup: `tabula_get_or_register_agent` (name=`reviewer`, `status=active`, `current_task`=review summary); `tabula_set_status` (entity=`task`, id, `status=progress`); claim it if needed with `tabula_request` PATCH `/tasks/{id} {agent_id}`.
+- At the end of the review: `tabula_set_status` (entity=`task`, id, `status=done`) if the review is complete (even with BLOCKERS: the review task is done — the BLOCKERS live in the report, not in the task state). Then `tabula_get_or_register_agent` (name, `status=idle`, `current_task="Inattivo"`).
+- **Append to the task `md`** the outcome of the review (synthesis, BLOCKERS/SUGGESTIONS/NITS, files examined, Code Health): `tabula_append_md` (entity=`task`, id, text=`<report>`).
 - It is best-effort: if Tabula does not respond, do NOT block the review — proceed and flag it. You stay read-only on the code; you only touch the board.

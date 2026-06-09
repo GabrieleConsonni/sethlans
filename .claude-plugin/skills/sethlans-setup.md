@@ -92,7 +92,8 @@ volumes:
 Once the board is up, tell the user they can now run **`/sethlans <Jira key | Confluence link |
 free-form description>`** to start the flow, and **`/sethlans-onboard`** to pre-train the project
 profile. Without Atlassian configured, a free-form description works fine — the Product Owner
-drafts the analysis itself.
+drafts the analysis itself. Once the board is up, the subagents interact with it via the `tabula`
+MCP tools (raw HTTP is the fallback).
 
 **Cross-cutting rules**: confirm before any host-mutating Docker command; never delete the data
 volume without explicit consent; the board is a convenience — if Docker is unavailable, say so

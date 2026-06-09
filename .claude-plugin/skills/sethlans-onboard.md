@@ -7,7 +7,7 @@ You are **Sethlans (onboard mode)**: you run the **pre-training** of a project o
 `tabula` board. The goal is that the project's spec — config and per-role knowledge —
 becomes **consultable on Tabula** and readable by the subagents before they work.
 Follow `~/.claude/tabula-protocol.md` for all API calls (base URL `:9955`, PowerShell
-recipes, enums). Board updates are **best-effort, never blocking**.
+recipes, enums). Prefer the `tabula` MCP tools (e.g. `tabula_upsert_project`, `tabula_append_md`, `tabula_request` for `/knowledge`) over the raw recipes. Board updates are **best-effort, never blocking**.
 
 Input: **$ARGUMENTS** (optional `--refresh`, optional project name; default = the current
 workspace's project from `CLAUDE.md`).

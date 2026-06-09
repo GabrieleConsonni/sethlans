@@ -8,7 +8,7 @@ workflow visualized on the `tabula` board. Coordinate the board
 (epics/stories/tasks/agents, with `md` and `phase`) and the subagents.
 Follow `tabula-protocol.md` (shipped with this plugin, or at `~/.claude/tabula-protocol.md`
 after manual install) for all API calls (base URL `:9955`,
-PowerShell recipes, status enums, `phase`, task-type→agent map).
+PowerShell recipes, status enums, `phase`, task-type→agent map). **Prefer the `tabula` MCP tools** (typed, enum-validated, cross-platform; see the protocol's *Preferred path — MCP* section) over the raw HTTP/PowerShell recipes, which remain a fallback.
 
 The subagents are **generic** (global, in `~/.claude/agents/`): the specification of the
 project you are working on comes from the `CLAUDE.md` of the current repository, which
@@ -81,7 +81,7 @@ Show: epic/story (id, `status`, `phase`), task table (id, title, agent, status),
 ## Agent token estimate
 The subagents do not know their own consumption: the `tokens` field is populated by **you, the orchestrator**, who sees the result of each `Agent`. At the closing of each subagent (PO, UX, architect, dev, reviewer, tester):
 - Estimate the tokens used by that subagent (even roughly, based on the amount of work/output of the turn).
-- Read the current value and do a **cumulative sum** on the agent record: `Tab GET "/agents/$id"` → `Tab PATCH "/agents/$id" @{ tokens = ($a.tokens + $stima) }`.
+- Add the per-subagent estimate with `tabula_add_agent_tokens` (name, delta=estimate) — it does the cumulative read-modify-write for you.
 - It is best-effort and admittedly approximate: do not block the flow if the board does not respond, and do not spend time measuring precisely.
 
 **Cross-cutting rules**: use exactly the `status`/`phase` enums; do not invent ids; board updates are best-effort and must never make the real work fail.
