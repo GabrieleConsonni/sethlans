@@ -30,9 +30,33 @@ Before implementing, **discover and follow the conventions of the current reposi
 - Always handle the UI states: validation, loading, empty, error.
 - Never expose secrets in UI or logs; redact sensitive data.
 
+## RxJS & signals conventions
+- **No subscription leaks.** Prefer in order:
+  1. `async` pipe in templates (auto-unsubscribes)
+  2. `toSignal()` — converts an Observable to a signal, auto-unsubscribes via `DestroyRef`
+  3. `takeUntilDestroyed()` operator (Angular 16+) for imperative subscriptions
+  Avoid `ngOnDestroy` + `Subject.complete()` in new code unless the project already uses that pattern.
+- **New components: `OnPush` by default** (or signal-based components, which are `OnPush` implicitly).
+  Use `Default` only when there is an explicit reason documented in a comment.
+
 ## Testing (your responsibility)
-- Before marking the task `done`, **run the fast unit/component tests** for what you touched (the project's Jest/Karma command, e.g. `pnpm test` scoped to the touched project/files) and the linter. They must pass.
-- **E2E/UI and acceptance tests are the tester's job** — do NOT run them yourself unless the architect explicitly assigned them to you. Keep your loop fast: unit + lint, then hand off.
+
+**Fast type/template check (inner loop)**
+Before running tests, validate compilation first — it's faster and catches errors earlier:
+- TypeScript: `tsc --noEmit` (type errors across all files)
+- Angular templates: `ng build --configuration=development --no-progress` (catches template binding
+  errors that `tsc` alone misses) — or `ngc --noEmit` if the project exposes it.
+If the `angular-ls` MCP server is configured (tool `angular_ls_get_diagnostics` visible in your
+tool list), use it on the modified files instead — same diagnostics in milliseconds, no build needed.
+
+**Surgical test targeting**
+Run only the spec file(s) for what you touched:
+- Angular CLI + Karma: `ng test --include="**/my.component.spec.ts" --watch=false`
+- Jest (if adopted): `pnpm test --testPathPattern="my.component" --watchAll=false`
+Run the full fast-unit suite + linter only as a final regression check before setting the task `done`.
+
+**E2E/UI and acceptance tests are the tester's job** — do NOT run them unless the architect
+explicitly assigned them to you. Keep your loop fast: type-check → unit → lint, then hand off.
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):

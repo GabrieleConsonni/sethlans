@@ -18,6 +18,7 @@ Input: **$ARGUMENTS**
 - `--port <n>` → expose the backend API on a custom host port (default `9955`); the frontend
   always stays on `5173`.
 - `--jdtls <project-path>` → add the optional **JDTLS service** to the stack (see §8).
+- `--angular-ls <project-path>` → add the optional **Angular Language Service** to the stack (see §9).
 
 ## 1. Is the board already up?
 - `GET http://localhost:9955/state` (or the `--port`/`TABULA_API_URL` override). If it
@@ -157,6 +158,66 @@ subsequent startups are fast (a few seconds).
 
 `down` removes the JDTLS container along with the rest of the stack. The `jdtls-data` volume
 is preserved (same rule as `tabula-data`): only deleted if the user explicitly asks.
+
+## 9. Optional: Angular Language Service (`--angular-ls <project-path>`)
+
+The Angular Language Service (Angular LS) extends the TypeScript compiler with Angular-specific
+analysis: template binding errors, missing inputs, pipe type mismatches, unused imports. The
+`frontend` subagent uses it for instant diagnostics on modified files — no full `ng build` needed.
+
+**When to offer it**: whenever the project is Angular (detectable by `angular.json` or
+`@angular/core` in `package.json`). Mention it proactively after a successful Tabula startup.
+
+### 9a. What it adds to the compose stack
+
+```yaml
+  angular-ls:
+    image: node:20-slim
+    working_dir: /workspace
+    command: >
+      sh -c "npm install -g @angular/language-server &&
+             node /usr/local/lib/node_modules/@angular/language-server/index.js
+             --stdio --tsProbeLocations /workspace/node_modules
+             --ngProbeLocations /workspace/node_modules"
+    volumes:
+      - <project-path>:/workspace:ro
+      - angular-ls-data:/root/.npm
+    ports:
+      - "3334:3334"
+    restart: unless-stopped
+```
+
+Add to top-level volumes:
+```yaml
+volumes:
+  angular-ls-data:
+```
+
+> `<project-path>` is the absolute path passed via `--angular-ls`. The project must have
+> `node_modules` already installed (the container mounts them read-only). Ask the user to
+> confirm the path and that `npm install` / `pnpm install` has been run.
+
+### 9b. MCP bridge
+
+Angular LS speaks LSP over stdio. The local MCP bridge:
+
+```bash
+ANGULAR_PROJECT_PATH=<project-path> npx -y angular-ls-mcp-server
+```
+
+Register it by setting `ANGULAR_PROJECT_PATH` in the shell where Claude Code runs (`.zshrc` /
+`.bashrc` / PowerShell profile). The `plugin.json` `angular-ls` entry picks it up automatically.
+
+### 9c. First-run note
+
+Angular LS indexes the project on first connection (~5–15 seconds on typical projects). Subsequent
+requests are served from the in-memory model. The `angular-ls-data` volume caches the npm global
+install so the image starts faster on restart.
+
+### 9d. Teardown
+
+`down` removes the container. `angular-ls-data` is preserved unless the user explicitly asks to
+wipe it.
 
 **Cross-cutting rules**: confirm before any host-mutating Docker command; never delete the data
 volume without explicit consent; the board is a convenience — if Docker is unavailable, say so
