@@ -44,7 +44,9 @@ def upgrade() -> None:
         sa.Column("md", sa.Text(), server_default="", nullable=False),
         sa.Column("md_updated_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
-            ["project_id"], [f"{SCHEMA}.projects.id"], ondelete="CASCADE"
+            ["project_id"],
+            [f"{SCHEMA}.projects.id" if SCHEMA else "projects.id"],
+            ondelete="CASCADE",
         ),
         schema=SCHEMA,
     )
