@@ -1,0 +1,31 @@
+# Tabula — distribuzione utente finale
+# Scarica le immagini pre-buildiate da Docker Hub, non richiede il repo.
+#
+# Avvio:
+#   docker compose -f docker-compose.dist.yml up -d
+#
+# Per PostgreSQL invece di SQLite:
+#   TABULA_DB_URL=postgresql+psycopg2://user:pass@host:5432/tabula \
+#   docker compose -f docker-compose.dist.yml up -d
+
+services:
+  backend:
+    image: gifsonick/tabula-backend:latest
+    environment:
+      - TABULA_DB_URL=${TABULA_DB_URL:-sqlite:////data/tabula.db}
+    volumes:
+      - tabula-data:/data
+    ports:
+      - "9955:9955"
+    restart: unless-stopped
+
+  frontend:
+    image: gifsonick/tabula-frontend:latest
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  tabula-data:
