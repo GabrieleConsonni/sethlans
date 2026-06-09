@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Activity, Zap } from "lucide-react";
 import * as api from "../api.js";
+import { READONLY } from "../config.js";
 
 // Griglia degli agenti: stato, task corrente, token consumati.
 export default function Periti({ state, reload }) {
@@ -101,14 +102,16 @@ export default function Periti({ state, reload }) {
                       </span>
                     </div>
                   </div>
-                  <div className="card-actions">
-                    <button className="icon-btn" onClick={() => setEditing(a.id)}>
-                      <Pencil size={13} />
-                    </button>
-                    <button className="icon-btn" onClick={() => del(a.id)}>
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
+                  {!READONLY && (
+                    <div className="card-actions">
+                      <button className="icon-btn" onClick={() => setEditing(a.id)}>
+                        <Pencil size={13} />
+                      </button>
+                      <button className="icon-btn" onClick={() => del(a.id)}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="task-box">
                   <span className="task-label">Sta facendo</span>
@@ -130,38 +133,39 @@ export default function Periti({ state, reload }) {
             )}
           </div>
         ))}
-        {adding ? (
-          <div className="agent-card" style={{ justifyContent: "center" }}>
-            <div className="add-form">
-              <input
-                autoFocus
-                placeholder="Nome agente"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && add()}
-                className="input"
-              />
-              <div className="form-row">
-                <button className="btn-primary" onClick={add}>
-                  Aggiungi
-                </button>
-                <button
-                  className="btn-ghost"
-                  onClick={() => {
-                    setAdding(false);
-                    setName("");
-                  }}
-                >
-                  Annulla
-                </button>
+        {!READONLY &&
+          (adding ? (
+            <div className="agent-card" style={{ justifyContent: "center" }}>
+              <div className="add-form">
+                <input
+                  autoFocus
+                  placeholder="Nome agente"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && add()}
+                  className="input"
+                />
+                <div className="form-row">
+                  <button className="btn-primary" onClick={add}>
+                    Aggiungi
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    onClick={() => {
+                      setAdding(false);
+                      setName("");
+                    }}
+                  >
+                    Annulla
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <button className="add-agent" onClick={() => setAdding(true)}>
-            <Plus size={18} /> Nuovo agente
-          </button>
-        )}
+          ) : (
+            <button className="add-agent" onClick={() => setAdding(true)}>
+              <Plus size={18} /> Nuovo agente
+            </button>
+          ))}
       </div>
     </div>
   );

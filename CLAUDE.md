@@ -82,6 +82,7 @@ npm run dev                                          # :5173
 | `TABULA_DB_URL`  | backend     | `postgresql+psycopg2://postgres:password@localhost:5432/tabula` | Postgres connection |
 | `TABULA_PORT`    | backend     | `9955`  | API port |
 | `VITE_API_URL`   | frontend    | `http://localhost:9955` | backend base URL (also at runtime, from the header field) |
+| `VITE_READONLY`  | frontend    | `true`  | read-only UI: in the first version the board is editable only by AI agents (via HTTP), never by the user from the UI. Set `false` to re-enable in-UI editing. |
 
 ## API & data model
 
