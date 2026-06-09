@@ -4,7 +4,12 @@
 #   Start:  docker compose -f docker-compose.dev.yml up   (or dev-tabula.bat)
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      # Il default in dev è PostgreSQL (vedi TABULA_DB_URL sotto), quindi
+      # l'immagine deve includere psycopg2: si costruisce con le dipendenze Postgres.
+      args:
+        REQUIREMENTS: requirements-postgres.txt
     container_name: tabula-backend-dev
     command: sh -c "alembic upgrade head && uvicorn tabula_server:app --host 0.0.0.0 --port 9955 --reload"
     environment:
