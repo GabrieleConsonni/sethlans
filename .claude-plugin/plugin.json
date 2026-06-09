@@ -16,6 +16,13 @@
       "env": {
         "TABULA_API_URL": "${TABULA_API_URL}"
       }
+    },
+    "angular-ls": {
+      "command": "npx",
+      "args": ["-y", "angular-ls-mcp-server"],
+      "env": {
+        "PROJECT_ROOT": "${ANGULAR_PROJECT_PATH}"
+      }
     }
   }
 }
