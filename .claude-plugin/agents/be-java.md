@@ -19,7 +19,7 @@ Before implementing, **discover and follow the conventions of the current reposi
   rules or single source of truth for the Java backend, **treat them as authoritative**.
 - Study the existing patterns (controller/service/repository layering, tenant handling,
   the migration tool actually in use — Liquibase/Flyway/other) and mirror them.
-- Use the repo's build/test commands (e.g. `mvn -q test`); do not change tooling without approval.
+- Use the repo's build/test commands; do not change tooling without approval. **Before running any Maven/Gradle command, read the _Build toolchain_ rule at the end of *Testing*.**
 
 ## Key constraints
 - Avoid N+1 (JOIN FETCH / batch / projection); choose fetch strategies intentionally.
@@ -54,8 +54,18 @@ Use the project's command from `CLAUDE.md` and exclude integration tests:
 **Do NOT run integration tests** (Testcontainers / `@SpringBootTest` / `*IntegrationTest`, `*IT`):
 those belong to the **tester**. Keep your loop fast.
 
-If the host toolchain can't build the project's Java version, use the build wrapper/command the
-project's `CLAUDE.md` prescribes.
+**Build toolchain — non-negotiable.** Do not assume the system `mvn`/`gradle` targets the right
+JDK (it frequently doesn't — the host default may be an older JDK than the repo). In order:
+1. If the project's `CLAUDE.md` prescribes a **build command/wrapper** (it pins the correct JDK,
+   `settings.xml` and local repository), use **exactly that** for every build/compile/test command above.
+2. Otherwise prefer the **repo's own wrapper** (`./mvnw` / `./gradlew`) run with the project's JDK
+   exported in `JAVA_HOME`, over a bare system `mvn`/`gradle`.
+3. Verify once up front (`./mvnw -version` / `./gradlew -version`) that the reported Java version
+   matches the project's target **before** trusting any build/test result.
+
+**Never use a Docker-based build as a fallback** — it is slow and not your concern here. If no host
+toolchain can build the project's Java version, **stop and flag it to the orchestrator**; do not work
+around it with a container.
 
 ## Project knowledge — read before working
 At the **start** of a task on a project, best-effort read the **project profile** and your **role's knowledge card(s)** from Tabula before acting, so you honour the project spec (see the *Consumption rule* in `~/.claude/tabula-protocol.md`):
