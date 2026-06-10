@@ -34,6 +34,7 @@ for f in "$SRC"/skills/*.md; do
   copy_safe "$f" "$DEST/commands/$(basename "$f")"
 done
 copy_safe "$SRC/tabula-protocol.md"  "$DEST/tabula-protocol.md"
+copy_safe "$SRC/code-quality-protocol.md"  "$DEST/code-quality-protocol.md"
 for f in "$SRC"/agents/*.md; do
   copy_safe "$f" "$DEST/agents/$(basename "$f")"
 done
@@ -48,3 +49,7 @@ echo
 echo "Optional — register the Tabula MCP server (cross-platform tools for the board):"
 echo "  claude mcp add tabula -e TABULA_API_URL=http://localhost:9955 -- node \"$DEST/mcp/server.mjs\""
 echo "(The Claude Code plugin install wires this automatically; this is only for the manual install.)"
+echo
+echo "Optional — wire a code-quality MCP for the reviewer (CodeScene / SonarQube / Codacy ...):"
+echo "  see \"$DEST/code-quality-protocol.md\" for adaptable 'claude mcp add' templates."
+echo "  It is fully optional: with no such MCP, the reviewer just omits the Code Health section."

@@ -134,3 +134,9 @@ MCP server** (`.claude-plugin/mcp/server.mjs`, a zero-dependency stdio wrapper o
 `plugin.json`), which exposes typed, enum-validated tools and works cross-platform; the raw HTTP recipes are
 a fallback. Updating Tabula is **best-effort and never blocking** — if the board does not respond,
 development work continues anyway.
+
+The `reviewer` can optionally consume a **code-quality MCP** (CodeScene, SonarQube, Codacy, …) for its
+Code Health section — convention and adaptable wiring templates in
+[`.claude-plugin/code-quality-protocol.md`](.claude-plugin/code-quality-protocol.md). It is not shipped
+in `plugin.json` (it would fail without the vendor/token): enable it per-user (`claude mcp add`) or
+per-project (`.mcp.json`). Fully optional: without it the reviewer omits the section.

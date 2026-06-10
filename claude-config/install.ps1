@@ -35,6 +35,7 @@ Get-ChildItem (Join-Path $src 'skills') -Filter *.md | ForEach-Object {
     Copy-Item-Safe $_.FullName (Join-Path $dest "commands\$($_.Name)")
 }
 Copy-Item-Safe (Join-Path $src 'tabula-protocol.md') (Join-Path $dest 'tabula-protocol.md')
+Copy-Item-Safe (Join-Path $src 'code-quality-protocol.md') (Join-Path $dest 'code-quality-protocol.md')
 
 Get-ChildItem (Join-Path $src 'agents') -Filter *.md | ForEach-Object {
     Copy-Item-Safe $_.FullName (Join-Path $dest "agents\$($_.Name)")
@@ -50,3 +51,7 @@ Write-Host ""
 Write-Host "Optional - register the Tabula MCP server (cross-platform tools for the board):" -ForegroundColor Cyan
 Write-Host "  claude mcp add tabula -e TABULA_API_URL=http://localhost:9955 -- node `"$dest\mcp\server.mjs`""
 Write-Host "(The Claude Code plugin install wires this automatically; this is only for the manual install.)"
+Write-Host ""
+Write-Host "Optional - wire a code-quality MCP for the reviewer (CodeScene / SonarQube / Codacy ...):" -ForegroundColor Cyan
+Write-Host "  see `"$dest\code-quality-protocol.md`" for adaptable 'claude mcp add' templates."
+Write-Host "  It is fully optional: with no such MCP, the reviewer just omits the Code Health section."

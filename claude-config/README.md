@@ -24,6 +24,7 @@ plugin bundle.
     tester.md
     ux-designer.md
   tabula-protocol.md     # the board's API contract (referenced by skill + agents)
+  code-quality-protocol.md # optional Code Health / static-analysis MCP convention (reviewer)
   mcp/
     server.mjs           # `tabula` MCP server (zero-dep stdio wrapper over the REST API)
 
@@ -88,3 +89,6 @@ After installation, **restart Claude Code** and type `/sethlans <request>`.
 - The project you work on should have a **`CLAUDE.md`** describing the stack, repos,
   commands, and environments.
 - For ingest from Jira/Confluence you need the **Atlassian MCP** configured in Claude Code.
+- *(Optional)* a **code-quality MCP** (CodeScene, SonarQube, Codacy, …) for the reviewer's
+  Code Health section — see [`../.claude-plugin/code-quality-protocol.md`](../.claude-plugin/code-quality-protocol.md).
+  Fully optional: without it the reviewer simply omits that section.
