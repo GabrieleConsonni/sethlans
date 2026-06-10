@@ -1,6 +1,6 @@
 ---
 description: "Sethlans setup — start (or stop) the Tabula board locally on Docker from the published images"
-argument-hint: "[--postgres <url>] [--port <n>] [down]"
+argument-hint: "[--postgres <url>] [--port <n>] [--lsp] [down]"
 ---
 
 You are **Sethlans (setup mode)**: you bring up the **Tabula** board on the user's machine
@@ -17,8 +17,9 @@ Input: **$ARGUMENTS**
   `postgresql+psycopg2://user:pass@host:5432/tabula`).
 - `--port <n>` → expose the backend API on a custom host port (default `9955`); the frontend
   always stays on `5173`.
-- `--jdtls <project-path>` → add the optional **JDTLS service** to the stack (see §8).
-- `--angular-ls <project-path>` → add the optional **Angular Language Service** to the stack (see §9).
+- `--lsp` → after the board is up, also set up the optional **LSP-over-MCP** layer (cclsp) for
+  the dev subagents in the **current workspace** (see §8). Without the flag, offer it proactively
+  when you detect a Java or Angular project.
 
 ## 1. Is the board already up?
 - `GET http://localhost:9955/state` (or the `--port`/`TABULA_API_URL` override). If it
@@ -97,128 +98,97 @@ profile. Without Atlassian configured, a free-form description works fine — th
 drafts the analysis itself. Once the board is up, the subagents interact with it via the `tabula`
 MCP tools (raw HTTP is the fallback).
 
-## 8. Optional: JDTLS service (`--jdtls <project-path>`)
+## 8. Optional: LSP-over-MCP for the dev subagents (cclsp)
 
-JDTLS (Eclipse Java Development Tools Language Server) lets the `be-java` subagent validate
-code and get diagnostics instantly — without running a full build — by exposing IDE-level
-analysis via an MCP server.
+This is a **separate, optional** layer from the board, and it does **not** run in Docker. The board
+(§1–§7) is a long-running shared service → containers are the right fit. A language server is the
+opposite: per-developer, per-repo, and it must see the **live workspace** and resolve the local
+toolchain (JDK, `node_modules`). So it runs **natively on the host**, registered as an MCP server
+that the `be-java` and `frontend` subagents use for instant diagnostics and symbol navigation
+without a full build.
 
-**When to offer it**: whenever the user's project is Java (Maven or Gradle). Mention it
-proactively after a successful Tabula startup if you detect a `pom.xml` or `build.gradle` in
-the workspace.
+The tool is **[cclsp](https://github.com/ktnyt/cclsp)** (`npx cclsp@latest`) — a real, published
+npm package that bridges any LSP server to MCP. It exposes the tools `get_diagnostics`,
+`find_definition`, `find_references`, `rename_symbol`, `rename_symbol_strict`, `restart_server`.
 
-### 8a. What it adds to the compose stack
+> **Why not a Docker service / a custom bridge?** Earlier drafts of this skill added `jdtls` /
+> `angular-ls` containers wired to npm packages `java-lsp-mcp-server` / `angular-ls-mcp-server` —
+> **those packages do not exist** and the containers can't see the live workspace. cclsp replaces
+> both with one real, language-agnostic server. Do not resurrect the container approach for LSP.
 
-Add this service to the compose file (alongside `backend` and `frontend`):
+### 8a. When to offer it
+Inspect the **current workspace** (the project the dev subagents will edit, not the sethlans repo):
+- **Java** if a `pom.xml` or `build.gradle`(`.kts`) is present → configure the `jdtls` LSP.
+- **Angular/TypeScript** if `angular.json` or `@angular/core` in `package.json` → configure the
+  `typescript-language-server` LSP (bundled with cclsp). For Angular template diagnostics, the
+  `@angular/language-server` binary can be used instead (`command: ["ngserver", "--stdio", ...]`).
 
-```yaml
-  jdtls:
-    image: ghcr.io/redhat-developer/vscode-java:latest   # ships JDTLS + JDK 21
-    command: ["--add-opens", "java.base/java.util=ALL-UNNAMED"]
-    environment:
-      - WORKSPACE_DIR=/workspace
-    volumes:
-      - <project-path>:/workspace:ro          # bind-mount the Java project (read-only)
-      - jdtls-data:/jdtls-workspace           # persistent index / cache
-    ports:
-      - "3333:3333"                           # MCP HTTP bridge (see 8b)
-    restart: unless-stopped
+If neither is detected, say so and skip — there is nothing to set up.
+
+### 8b. Prerequisites (host, installed separately)
+cclsp spawns the LSP binary; the binary itself must be installed and on `PATH`:
+- **Java**: a JDK (21 recommended) and `jdtls` (Eclipse JDT Language Server). Set `JAVA_HOME` to
+  the JDK so cclsp passes it to the server.
+- **TypeScript/Angular**: the project's `node_modules` installed (`npm`/`pnpm install`); the
+  TS server ships with cclsp, so usually nothing extra is needed.
+
+Confirm with the user before installing anything.
+
+### 8c. Generate the per-repo config
+For each detected repo, write a cclsp config file (e.g. `.cclsp/<repo>.json` at the workspace root).
+Java example:
+```json
+{
+  "servers": [
+    { "extensions": ["java"], "command": ["jdtls"], "rootDir": "." }
+  ]
+}
 ```
-
-Add the volume at the top level:
-```yaml
-volumes:
-  tabula-data:
-  jdtls-data:
+TypeScript/Angular example:
+```json
+{
+  "servers": [
+    { "extensions": ["ts", "tsx", "js", "jsx"],
+      "command": ["npx", "--", "typescript-language-server", "--stdio"], "rootDir": "." }
+  ]
+}
 ```
+> Single-language repos get one `servers[]` entry; a polyglot repo can list several. `rootDir` is
+> relative to where cclsp runs — point it at the repo root.
 
-> **Note**: `<project-path>` is the absolute path passed via `--jdtls`. Ask the user to
-> confirm it before writing the compose file.
-
-### 8b. MCP bridge
-
-JDTLS speaks LSP over stdio; to expose it to Claude Code agents as an MCP server, the user
-must run a local bridge. Recommend `java-lsp-mcp-server` (Node.js, no install required):
-
-```bash
-JDTLS_PROJECT_PATH=<project-path> npx -y java-lsp-mcp-server
+### 8d. Register cclsp as an MCP server (workspace-scoped)
+The config lives **in the target workspace**, not in the sethlans plugin (the plugin can't ship a
+valid `.mcp.json` for arbitrary projects). Add one cclsp server per repo to the workspace's
+`.mcp.json` (this is the file Claude Code reads for project MCP servers — create it if absent).
+Each entry points cclsp at its repo config via `CCLSP_CONFIG_PATH`, plus `JAVA_HOME` for Java:
+```json
+{
+  "mcpServers": {
+    "cclsp-<repo>": {
+      "command": "npx",
+      "args": ["-y", "cclsp@latest"],
+      "env": {
+        "CCLSP_CONFIG_PATH": "${workspaceFolder}/.cclsp/<repo>.json",
+        "JAVA_HOME": "<absolute path to JDK 21>"
+      }
+    }
+  }
+}
 ```
+Confirm the absolute paths with the user before writing. After writing `.mcp.json`, the user must
+**restart Claude Code** (or reload MCP servers) for the `cclsp-<repo>` tools to appear. On first
+use the LSP indexes the project (Java: 30–120s; TS: a few seconds), then diagnostics are instant.
 
-The bridge is registered in `plugin.json` as the `jdtls` MCP server and activated by setting
-`JDTLS_PROJECT_PATH` in the shell where Claude Code runs. Instruct the user to add this env
-var to their shell profile (`.zshrc` / `.bashrc` / PowerShell profile).
+### 8e. Hand-off to the subagents
+`be-java` and `frontend` already look for a cclsp/LSP server in their tool list and fall back to a
+compile-only command when it is absent — so the layer is **purely additive** and never blocking.
+Tell the user which `cclsp-<repo>` servers you configured.
 
-### 8c. First-run indexing
+### 8f. Teardown
+There is nothing to stop: cclsp runs on demand via `npx`. To disable it, remove the `cclsp-<repo>`
+entries from `.mcp.json` (and optionally the `.cclsp/` configs) and reload MCP servers.
 
-On first startup JDTLS indexes the entire project (reads sources + resolves classpath). This
-takes 30–120 seconds depending on project size. The `jdtls-data` volume caches the result so
-subsequent startups are fast (a few seconds).
-
-### 8d. Teardown
-
-`down` removes the JDTLS container along with the rest of the stack. The `jdtls-data` volume
-is preserved (same rule as `tabula-data`): only deleted if the user explicitly asks.
-
-## 9. Optional: Angular Language Service (`--angular-ls <project-path>`)
-
-The Angular Language Service (Angular LS) extends the TypeScript compiler with Angular-specific
-analysis: template binding errors, missing inputs, pipe type mismatches, unused imports. The
-`frontend` subagent uses it for instant diagnostics on modified files — no full `ng build` needed.
-
-**When to offer it**: whenever the project is Angular (detectable by `angular.json` or
-`@angular/core` in `package.json`). Mention it proactively after a successful Tabula startup.
-
-### 9a. What it adds to the compose stack
-
-```yaml
-  angular-ls:
-    image: node:20-slim
-    working_dir: /workspace
-    command: >
-      sh -c "npm install -g @angular/language-server &&
-             node /usr/local/lib/node_modules/@angular/language-server/index.js
-             --stdio --tsProbeLocations /workspace/node_modules
-             --ngProbeLocations /workspace/node_modules"
-    volumes:
-      - <project-path>:/workspace:ro
-      - angular-ls-data:/root/.npm
-    ports:
-      - "3334:3334"
-    restart: unless-stopped
-```
-
-Add to top-level volumes:
-```yaml
-volumes:
-  angular-ls-data:
-```
-
-> `<project-path>` is the absolute path passed via `--angular-ls`. The project must have
-> `node_modules` already installed (the container mounts them read-only). Ask the user to
-> confirm the path and that `npm install` / `pnpm install` has been run.
-
-### 9b. MCP bridge
-
-Angular LS speaks LSP over stdio. The local MCP bridge:
-
-```bash
-ANGULAR_PROJECT_PATH=<project-path> npx -y angular-ls-mcp-server
-```
-
-Register it by setting `ANGULAR_PROJECT_PATH` in the shell where Claude Code runs (`.zshrc` /
-`.bashrc` / PowerShell profile). The `plugin.json` `angular-ls` entry picks it up automatically.
-
-### 9c. First-run note
-
-Angular LS indexes the project on first connection (~5–15 seconds on typical projects). Subsequent
-requests are served from the in-memory model. The `angular-ls-data` volume caches the npm global
-install so the image starts faster on restart.
-
-### 9d. Teardown
-
-`down` removes the container. `angular-ls-data` is preserved unless the user explicitly asks to
-wipe it.
-
-**Cross-cutting rules**: confirm before any host-mutating Docker command; never delete the data
-volume without explicit consent; the board is a convenience — if Docker is unavailable, say so
-plainly and stop.
+**Cross-cutting rules**: confirm before any host-mutating command (Docker, installs, writing
+`.mcp.json`); never delete the `tabula-data` volume without explicit consent; the board and the LSP
+layer are conveniences — if Docker (board) or a required LSP binary (cclsp) is unavailable, say so
+plainly and continue with what works.
