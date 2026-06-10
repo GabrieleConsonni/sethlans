@@ -21,6 +21,10 @@ Input: **$ARGUMENTS**
   the dev subagents in the **current workspace** (see §8). Without the flag, offer it proactively
   when you detect a Java or Angular project.
 
+Beyond the flags, after the board is up also offer proactively (no flag needed): the **native Java
+build toolchain** (§9) when the workspace has a Java repo whose required JDK differs from the host
+default.
+
 ## 1. Is the board already up?
 - `GET http://localhost:9955/state` (or the `--port`/`TABULA_API_URL` override). If it
   **responds**, Tabula is already running: report the URLs (UI `http://localhost:5173`,
@@ -188,7 +192,69 @@ Tell the user which `cclsp-<repo>` servers you configured.
 There is nothing to stop: cclsp runs on demand via `npx`. To disable it, remove the `cclsp-<repo>`
 entries from `.mcp.json` (and optionally the `.cclsp/` configs) and reload MCP servers.
 
+## 9. Optional: native Java build toolchain for the dev subagents
+
+Like the LSP layer (§8), this is **host-native, per-workspace, not Docker** — and it is what lets
+`be-java`/`tester` build and test the project's Java repos **fast**, without spinning a Maven/Gradle
+container. Offer it proactively when you detect a Java project whose **required JDK differs from the
+host default** (the classic trap: the system `mvn` / global `JAVA_HOME` is on an older JDK than the
+repos, so builds fail or get pushed through a slow container).
+
+> **Why native, never Docker?** A build container is slow (image + Maven startup per invocation) and
+> the dev subagents are explicitly told to *never* fall back to a Docker build (see the *Build
+> toolchain* rule in `be-java`/`tester`). If a matching JDK exists on the host, a thin native wrapper
+> is faster and removes the Docker dependency entirely.
+
+### 9a. When to offer it
+Inspect the current workspace:
+- A Java repo (`pom.xml` / `build.gradle(.kts)`) is present, **and** it targets a **newer JDK** than
+  the host default — compare `java -version` (and `mvn -version`) against the repo's
+  `<maven.compiler.release>` / toolchain / what the project's `CLAUDE.md` states.
+- Strong signal: `mvn -version` reports a Java version **below** the repo's target → that is exactly
+  what this layer removes.
+
+If the host default JDK already matches the repos, there is nothing to set up — say so and skip.
+
+### 9b. Prerequisites (host, confirmed with the user — install nothing without consent)
+- A **JDK matching the repos' target** (e.g. JDK 21) installed on the host, at a known absolute path.
+- The repos' **Maven/Gradle wrapper** (`mvnw` / `gradlew`) — Spring Boot projects ship one pinned to
+  a modern Maven/Gradle; prefer it over a system Maven/Gradle that may be too old for the JDK.
+- If dependencies come from a **private/HTTP registry**, the repo's `settings.xml` (Maven blocks
+  plain-HTTP repos since 3.8.1 — that file usually carries the `<mirror>` that re-enables it), and a
+  **dedicated local repository** path if the project keeps one separate from the system `~/.m2`.
+
+### 9c. Generate a per-workspace build wrapper
+Write a thin wrapper at the workspace root (e.g. `jdkXX-build.bat` / `.sh`) that the project's
+`CLAUDE.md` can point the subagents at. It must — with **no hardcoded values beyond the ones you
+confirmed** — export `JAVA_HOME` to the matching host JDK, invoke the **repo's own** `mvnw`/`gradlew`
+(not a system `mvn`/`gradle`), pass the repo's `settings.xml` + dedicated local-repo path if used,
+forward all args and propagate the exit code. Windows (`cmd`) example — adapt the absolute paths:
+```bat
+@echo off
+setlocal
+set "JAVA_HOME=<absolute path to the matching JDK>"
+call "%CD%\mvnw.cmd" -s settings.xml -Dmaven.repo.local=<dedicated local repo> -B %*
+set "RC=%ERRORLEVEL%"
+endlocal & exit /b %RC%
+```
+> `call "%CD%\mvnw.cmd"` uses the full path because some hosts set `NoDefaultCurrentDirectoryInExePath`,
+> which stops `cmd` from resolving `mvnw.cmd` from the current directory. The POSIX equivalent is a
+> `#!/usr/bin/env bash` script that `export`s `JAVA_HOME` and calls `./mvnw "$@"`.
+
+### 9d. Validate
+Run the wrapper once on a cheap goal (`<wrapper> -version`, then `<wrapper> -q -B compile`) and confirm
+Maven/Gradle reports the **target JDK** and the build exits 0 before handing off.
+
+### 9e. Hand-off to the subagents
+`be-java`/`tester` already prefer the build command/wrapper the project's `CLAUDE.md` prescribes and
+**never** fall back to a Docker build (see their *Build toolchain* rule). Tell the user the wrapper
+path and suggest they reference it in the project's `CLAUDE.md` as the **canonical build/test command**
+(with the fast-unit vs integration split) so the subagents pick it up.
+
+### 9f. Teardown
+Nothing runs in the background: to disable, delete the wrapper script and its `CLAUDE.md` reference.
+
 **Cross-cutting rules**: confirm before any host-mutating command (Docker, installs, writing
-`.mcp.json`); never delete the `tabula-data` volume without explicit consent; the board and the LSP
-layer are conveniences — if Docker (board) or a required LSP binary (cclsp) is unavailable, say so
-plainly and continue with what works.
+`.mcp.json` or build wrappers); never delete the `tabula-data` volume without explicit consent; the
+board, the LSP layer and the Java build toolchain are conveniences — if Docker (board) or a required
+host binary (cclsp LSP, a matching JDK) is unavailable, say so plainly and continue with what works.

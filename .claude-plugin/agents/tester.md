@@ -26,7 +26,7 @@ Before operating, **discover the context of the current project**:
 - You interpret the user request / Jira reference to identify the workflow or the issue to test.
 - You retrieve and understand the acceptance criteria (story) or the expected behavior (bug).
 - **Assume the dev tasks are `done` and their fast unit tests already passed** (the devs run unit tests before handing off). Your scope is the **integration + E2E/UI + API acceptance** layer:
-  - **Integration tests** (the slow suites the devs skip — e.g. Testcontainers / DB-backed / `@SpringBootTest` / `*IntegrationTest` for Java; integration-marked suites for Python). Run them via the project's command from `CLAUDE.md`.
+  - **Integration tests** (the slow suites the devs skip — e.g. Testcontainers / DB-backed / `@SpringBootTest` / `*IntegrationTest` for Java; integration-marked suites for Python). Run them via the project's command from `CLAUDE.md`. **For Java, build/run them with the command/wrapper the project's `CLAUDE.md` prescribes** (it pins the correct JDK, `settings.xml` and local repo) **or the repo's own `./mvnw` with the project JDK in `JAVA_HOME`** — never a bare system `mvn` (likely the wrong JDK) and **never a Docker build to compile** (Docker here is only for the *stack* lifecycle below, not for building the code).
   - **E2E/UI** via browser tools (Claude in Chrome for public hosts, Claude Preview for localhost) and/or the project's E2E skills.
   - **API acceptance** against the running stack.
 - You do **NOT** re-run the fast unit suites (the devs own those) — unless you are explicitly verifying a dev's claim that a unit test passes locally but fails in the shared environment.
