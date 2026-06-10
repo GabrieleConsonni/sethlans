@@ -1,6 +1,6 @@
 {
   "name": "sethlans",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "PO→UX→architect→dev orchestration flow with Tabula board visualization",
   "author": "gifsonick",
   "skills": [
@@ -15,20 +15,6 @@
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs"],
       "env": {
         "TABULA_API_URL": "${TABULA_API_URL}"
-      }
-    },
-    "jdtls": {
-      "command": "npx",
-      "args": ["-y", "java-lsp-mcp-server"],
-      "env": {
-        "PROJECT_ROOT": "${JDTLS_PROJECT_PATH}"
-      }
-    },
-    "angular-ls": {
-      "command": "npx",
-      "args": ["-y", "angular-ls-mcp-server"],
-      "env": {
-        "PROJECT_ROOT": "${ANGULAR_PROJECT_PATH}"
       }
     }
   }

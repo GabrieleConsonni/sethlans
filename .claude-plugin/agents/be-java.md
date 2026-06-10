@@ -31,9 +31,9 @@ Before implementing, **discover and follow the conventions of the current reposi
 ## Testing (your responsibility — fast unit only)
 
 **Compile-time validation (fast loop)**
-Use JDTLS for instant diagnostics if the `jdtls` MCP server is available (tool `jdtls_get_diagnostics`
-or equivalent — check your tool list). It validates changed files in milliseconds without a full build.
-Fall back to a compile-only command when JDTLS is absent:
+Use a Java LSP for instant diagnostics if a cclsp MCP server is available (a `cclsp-*` server
+exposing the `get_diagnostics` tool — check your tool list). It validates changed files in
+milliseconds without a full build. Fall back to a compile-only command when no LSP is present:
 - Gradle: `./gradlew compileJava compileTestJava`
 - Maven: `mvn compile test-compile -q`
 

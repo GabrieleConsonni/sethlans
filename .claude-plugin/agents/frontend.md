@@ -46,8 +46,9 @@ Before running tests, validate compilation first — it's faster and catches err
 - TypeScript: `tsc --noEmit` (type errors across all files)
 - Angular templates: `ng build --configuration=development --no-progress` (catches template binding
   errors that `tsc` alone misses) — or `ngc --noEmit` if the project exposes it.
-If the `angular-ls` MCP server is configured (tool `angular_ls_get_diagnostics` visible in your
-tool list), use it on the modified files instead — same diagnostics in milliseconds, no build needed.
+If a cclsp MCP server is configured (a `cclsp-*` server exposing the `get_diagnostics` tool, backed
+by the TypeScript/Angular language server), use it on the modified files instead — same diagnostics
+in milliseconds, no build needed.
 
 **Surgical test targeting**
 Run only the spec file(s) for what you touched:
